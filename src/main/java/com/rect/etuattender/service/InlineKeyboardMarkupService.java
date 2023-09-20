@@ -29,7 +29,7 @@ public class InlineKeyboardMarkupService {
             SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT);
             Date date = null;
             try {
-                date = sdf.parse(user.getTimestamp().toString());
+                date = sdf.parse(user.getLocalDateTime().toString());
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }

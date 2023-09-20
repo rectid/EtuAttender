@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity(name = "users")
 @Data
@@ -30,5 +31,5 @@ public class User {
     private String cookie;
 
     @Column
-    private Timestamp timestamp;
+    private LocalDateTime localDateTime;
 }

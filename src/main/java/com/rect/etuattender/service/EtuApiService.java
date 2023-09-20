@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rect.etuattender.model.lesson.Lesson;
 import com.rect.etuattender.model.user.User;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.jsoup.Jsoup;
@@ -11,18 +12,32 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
+import okhttp3.tls.HandshakeCertificates;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 
 @Component
 @Slf4j
 public class EtuApiService {
 
-    private final OkHttpClient client = new OkHttpClient();
+    private OkHttpClient okclient = new OkHttpClient();
     private final UserService userService;
     private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -30,113 +45,133 @@ public class EtuApiService {
         this.userService = userService;
     }
 
-    public String auth(User user, String[] lk){
+    @SneakyThrows
+    public String auth(User user, String[] lk) {
         try {
-            Request request = new Request.Builder()
-                    .url("https://digital.etu.ru/attendance/api/auth")
-                    .get()
+
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
                     .build();
 
-            Call call = client.newCall(request);
-            Response response = call.execute();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?response_type=code&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&client_id=29"))
+                    .GET()
+                    .build();
 
-            List<String> loginPostCookies = response.headers("Set-Cookie");
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            List<String> loginPostCookies = response.headers().allValues("Set-Cookie");
             String xsrfToken = loginPostCookies.get(0).split(";")[0];
             String lkSessionToken = loginPostCookies.get(1).split(";")[0];
-            String allLoginCookie = xsrfToken+";"+lkSessionToken;
+            String allLoginCookie = xsrfToken + "; " + lkSessionToken;
 
 
-            Document document = Jsoup.parse(response.body().string());
-            Elements elements = document.getElementsByAttributeValue("name","_token");
+            Document document = Jsoup.parse(response.body());
+            Elements elements = document.getElementsByAttributeValue("name", "_token");
             String token = elements.attr("value");
 
-            RequestBody body = RequestBody.create(MediaType.get("application/x-www-form-urlencoded"), "_token="+token+"&email="+lk[0]+"&password="+lk[1]);
-            request = new Request.Builder()
-                    .url("https://lk.etu.ru/login")
-                    .addHeader("Content-Type","application/x-www-form-urlencoded")
-                    .addHeader("Cookie",allLoginCookie)
-                    .post(body)
+
+            client = HttpClient.newBuilder().build();
+
+            String loginRequestFields = "_token=" + token + "&email=" + lk[0] + "&password=" + lk[1];
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://lk.etu.ru/login"))
+                    .setHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .setHeader("Cookie", allLoginCookie)
+                    .POST(HttpRequest.BodyPublishers.ofString(loginRequestFields))
                     .build();
 
-            call = client.newCall(request);
-            response = call.execute();
 
-            request = new Request.Builder()
-                    .url("https://digital.etu.ru/attendance/api/auth")
-                    .addHeader("Cookie",allLoginCookie)
-                    .get()
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            loginPostCookies = response.headers().allValues("Set-Cookie");
+            xsrfToken = loginPostCookies.get(0).split(";")[0];
+            lkSessionToken = loginPostCookies.get(1).split(";")[0];
+            allLoginCookie = xsrfToken + "; " + lkSessionToken;
+
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?client_id=29&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&response_type=code"))
+                    .setHeader("Cookie", allLoginCookie)
+                    .GET()
                     .build();
 
-            call = client.newCall(request);
-            response = call.execute();
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            document = Jsoup.parse(response.body().string());
-            if (document.hasSameValue("Неверный логин или пароль")){
+            loginPostCookies = response.headers().allValues("Set-Cookie");
+            xsrfToken = loginPostCookies.get(0).split(";")[0];
+            lkSessionToken = loginPostCookies.get(1).split(";")[0];
+            allLoginCookie = xsrfToken + "; " + lkSessionToken;
+
+            document = Jsoup.parse(response.body());
+            if (document.hasSameValue("Неверный логин или пароль")) {
                 return "lk_error";
             }
-            elements = document.getElementsByAttributeValue("name","_token");
+            elements = document.getElementsByAttributeValue("name", "_token");
             token = elements.attr("value");
-            elements = document.getElementsByAttributeValue("name","auth_token");
+            elements = document.getElementsByAttributeValue("name", "auth_token");
             String authToken = elements.attr("value");
 
-            body = RequestBody.create(MediaType.get("application/x-www-form-urlencoded"), "_token="+token+"state=&client_id=29&auth_token="+authToken);
-            request = new Request.Builder()
-                    .url("https://lk.etu.ru/login")
-                    .post(body)
+            String oauthRequestFields = "_token=" + token + "&state=&client_id=29" + "&auth_token=" + authToken;
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://lk.etu.ru/oauth/authorize"))
+                    .setHeader("Cookie", allLoginCookie)
+                    .setHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(oauthRequestFields))
                     .build();
 
-            call = client.newCall(request);
-            response = call.execute();
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            String getCookieURL = response.headers().values("Location").get(0).toString();
+            String cookieRedirect = response.headers().firstValue("Location").get();
 
-            request = new Request.Builder()
-                    .url(getCookieURL)
-                    .get()
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(cookieRedirect))
+                    .GET()
                     .build();
 
-            call = client.newCall(request);
-            response = call.execute();
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            String fullCookie = response.headers().values("Set-Cookie").get(0).toString();
+            String fullCookie = response.headers().firstValue("Set-Cookie").get();
 
             String[] dividedCookie = fullCookie.split(";");
             String cookie = dividedCookie[0];
             String expires = dividedCookie[2].split("=")[1];
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("E, dd MMM yyyy hh:mm:ss z");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-            Date parsedDate = dateFormat.parse(expires);
-            Timestamp expiresTimestamp = new java.sql.Timestamp(parsedDate.getTime());
+            DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                    .append(DateTimeFormatter.ofPattern("E, dd MMM yyyy HH:mm:ss O"))
+                    .toFormatter(Locale.ENGLISH);
+            LocalDateTime localDateTime = LocalDateTime.parse(expires, formatter);
 
-            if (cookie==null){
+
+            if (cookie == null) {
                 return "server_error";
             }
 
             user.setCookie(cookie);
-            user.setTimestamp(expiresTimestamp);
+            user.setLocalDateTime(localDateTime);
             userService.saveUser(user);
 
             return "ok";
 
 
-        } catch (IOException | ParseException e) {
-            log.error("Auth error!"+user.getId());
+        } catch (IOException e) {
+            log.error("Auth error!" + user.getId());
             return "server_error";
         }
     }
 
-    public List<Lesson> getLessons(User user){
-            Request request = new Request.Builder()
-                    .url("https://lk.etu.ru/login")
-                    .addHeader("Cookie",user.getCookie())
-                    .get()
-                    .build();
+    public List<Lesson> getLessons(User user) {
+        Request request = new Request.Builder()
+                .url("https://lk.etu.ru/login")
+                .addHeader("Cookie", user.getCookie())
+                .get()
+                .build();
 
-            Call call = client.newCall(request);
+        Call call = okclient.newCall(request);
         try {
             Response response = call.execute();
-            List<Lesson> lessons = Arrays.stream(objectMapper.readValue(response.body().string(),Lesson[].class)).toList();
+            List<Lesson> lessons = Arrays.stream(objectMapper.readValue(response.body().string(), Lesson[].class)).toList();
             return lessons;
         } catch (IOException e) {
             return null;
