@@ -64,7 +64,7 @@ public class EnterLk {
         return null;
     }
 
-    private BotApiMethod<Message> inEnterLk() {
+    private BotApiMethod inEnterLk() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update,user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите данные вашего лк в формате логин:пароль");
         message.setReplyMarkup(replyKeyboardMarkup);

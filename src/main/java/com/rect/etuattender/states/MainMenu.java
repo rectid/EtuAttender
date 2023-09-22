@@ -45,14 +45,14 @@ public class MainMenu {
     }
 
      @SneakyThrows
-     public BotApiMethod<Message> inMainMenu() {
+     public BotApiMethod inMainMenu() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
         message.setReplyMarkup(replyKeyboardMarkup);
         return message;
     }
 
-    public BotApiMethod<Message> error(){
+    public BotApiMethod error(){
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),"Неизвестная команда. Введите /start");
         return message;
     }

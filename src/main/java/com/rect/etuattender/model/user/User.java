@@ -41,6 +41,9 @@ public class User {
     private List<String> autoCheckLessons;
 
     @Column
-    private Date closestLesson;
+    private String closestLesson;
+
+    @Column
+    private Date closestLessonDate;
 
 }

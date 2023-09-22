@@ -8,6 +8,7 @@ import com.rect.etuattender.service.InlineKeyboardMarkupService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.AbstractResource;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 public class LessonMenu {
     private Update update;
     private User user;
-    private List<String> lessons = new ArrayList<>();
+    private List<Lesson> lessons = new ArrayList<>();
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final EtuApiService etuApiService;
@@ -46,15 +47,16 @@ public class LessonMenu {
         String command = update.getMessage().getText();
 
         List<Lesson>  lessons = etuApiService.getLessons(user);
-        user.setClosestLesson(lessons.get(0).start);
-        Date closestLesson = user.getClosestLesson();
-        lessons.parallelStream().forEach(lesson ->
-        {
-            if (lesson.start.before(closestLesson)&&lesson.start.after(new Date(System.currentTimeMillis()))) {
-                user.setClosestLesson(lesson.start);
+        this.lessons = lessons;
+        for (Lesson lesson:
+             lessons) {
+            if (lesson.start.after(new Date(1695369781429L))){
+                user.setClosestLesson(String.valueOf(lesson.id));
+                user.setClosestLessonDate(lesson.start);
+                userService.saveUser(user);
+                break;
             }
-            this.lessons.add(String.valueOf(lesson.id));
-        });
+        }
 
         if (update.getCallbackQuery()!=null){
             String data = update.getCallbackQuery().getData();
@@ -81,7 +83,7 @@ public class LessonMenu {
                     user.setAutoCheck(false);
                 } else {
 //            user.getAutoCheckLessons().putAll(etuApiService.getLessons(user).stream().map(lesson -> String.valueOf(lesson.id)).toList());
-            user.setAutoCheckLessons(lessons);
+            user.setAutoCheckLessons(lessons.stream().map(lesson -> String.valueOf(lesson.id)).toList());
             user.setAutoCheck(true);
         }
         userService.saveUser(user);
@@ -109,7 +111,7 @@ public class LessonMenu {
         return message;
     }
 
-    private BotApiMethod<Message> inLessonMenu() {
+    private BotApiMethod inLessonMenu() {
         userService.saveUser(user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getLessonButtons(etuApiService.getLessons(user),user));
