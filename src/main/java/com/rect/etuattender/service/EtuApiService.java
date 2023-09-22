@@ -2,6 +2,8 @@ package com.rect.etuattender.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rect.etuattender.model.lesson.Lesson;
 import com.rect.etuattender.model.user.User;
 import lombok.SneakyThrows;
@@ -9,25 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
-import okhttp3.tls.HandshakeCertificates;
 
-import javax.net.ssl.HttpsURLConnection;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Authenticator;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -36,8 +27,6 @@ import java.util.*;
 @Component
 @Slf4j
 public class EtuApiService {
-
-    private OkHttpClient okclient = new OkHttpClient();
     private final UserService userService;
     private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -149,7 +138,7 @@ public class EtuApiService {
             }
 
             user.setCookie(cookie);
-            user.setLocalDateTime(localDateTime);
+            user.setCookieLifetime(localDateTime);
             userService.saveUser(user);
 
             return "ok";
@@ -162,19 +151,19 @@ public class EtuApiService {
     }
 
     public List<Lesson> getLessons(User user) {
-        Request request = new Request.Builder()
-                .url("https://lk.etu.ru/login")
-                .addHeader("Cookie", user.getCookie())
-                .get()
+        HttpClient client = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in"))
+                .setHeader("Cookie", user.getCookie())
+                .GET()
                 .build();
-
-        Call call = okclient.newCall(request);
+        List<Lesson> lessons;
         try {
-            Response response = call.execute();
-            List<Lesson> lessons = Arrays.stream(objectMapper.readValue(response.body().string(), Lesson[].class)).toList();
-            return lessons;
-        } catch (IOException e) {
-            return null;
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            lessons = Arrays.stream(objectMapper.readValue(response.body(), Lesson[].class)).toList();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
+        return lessons;
     }
 }

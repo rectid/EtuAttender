@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,32 +24,60 @@ public class InlineKeyboardMarkupService {
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
         for (Lesson lesson:
              lessons) {
+            if (lesson.start.toLocalDate().getDayOfMonth()!=LocalDate.now().getDayOfMonth()){
+                continue;
+            }
             var button = new InlineKeyboardButton();
-
             final String OLD_FORMAT = "YYYY-MM-DD hh:mm:ss";
             final String NEW_FORMAT = "hh:mm";
             SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT);
-            Date date = null;
-            try {
-                date = sdf.parse(user.getLocalDateTime().toString());
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
-            }
+            Date date = lesson.start;
             sdf.applyPattern(NEW_FORMAT);
             String newDateString = sdf.format(date);
-
-            button.setText(newDateString + " - " + lesson.lesson.shortTitle + " - " + lesson.room);
+            if (user.getAutoCheckLessons().contains(String.valueOf(lesson.id))){
+            button.setText(newDateString + " - " + lesson.lesson.shortTitle + " - " + lesson.room+ " \u2714");}
+            else { button.setText(newDateString + " - " + lesson.lesson.shortTitle + " - " + lesson.room+ " \u274C");}
             button.setCallbackData(String.valueOf(lesson.id));
             rowInLine.add(button);
             rowsInLine.add(rowInLine);
             rowInLine = new ArrayList<>();
         }
             var button = new InlineKeyboardButton();
-            button.setText("Включить авто-посещение");
-            button.setCallbackData("AUTO_CHANGE");
+            if (user.isAutoCheck()){
+            button.setText("Авто-посещение \u2714");;}
+            else {button.setText("Авто-посещение \u274C");}
+            button.setCallbackData("AUTO_CHECK");
             rowInLine.add(button);
             rowsInLine.add(rowInLine);
             inlineKeyboardMarkup.setKeyboard(rowsInLine);
             return inlineKeyboardMarkup;
         }
+
+    public InlineKeyboardMarkup editLessonButtons(String data, InlineKeyboardMarkup replyMarkup) {
+        List<List<InlineKeyboardButton>> rowsInLine = replyMarkup.getKeyboard();
+        for (List<InlineKeyboardButton> rowInLine:
+             rowsInLine) {
+            for (InlineKeyboardButton button:
+                 rowInLine) {
+
+                if (data.equals("AUTO_CHECK")){
+                    if (rowInLine.get(rowInLine.size()-1).getText().contains("\u2714")){
+                         button.setText(button.getText().replace("\u2714","\u274C"));
+                    } else button.setText(button.getText().replace("\u274C","\u2714"));
+                    if (button.getCallbackData().equals("AUTO_CHECK")){
+                        break;
+                    }
+                }
+
+                if (button.getCallbackData().equals(data)){
+                    if (button.getText().contains("\u2714")){
+                        button.setText(button.getText().replace("\u2714","\u274C"));
+                    } else  button.setText(button.getText().replace("\u274C","\u2714"));
+
+
+                }
+            }
+        }
+        return replyMarkup;
     }
+}

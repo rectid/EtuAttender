@@ -1,6 +1,7 @@
 package com.rect.etuattender.model.lesson;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 
 public class Lesson {
     public int id;

@@ -36,6 +36,7 @@ public class MainMenu {
         switch (command){
             case "Ввести данные ЛК": return UserState.ENTERING_LK;
             case "Панель Админа": return UserState.IN_ADMIN_PANEL;
+            case "Расписание": return UserState.IN_LESSONS_MENU;
             case "Назад":
             case "/start":
                 return inMainMenu();
@@ -45,7 +46,7 @@ public class MainMenu {
 
      @SneakyThrows
      public BotApiMethod<Message> inMainMenu() {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update);
+        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
         message.setReplyMarkup(replyKeyboardMarkup);
         return message;

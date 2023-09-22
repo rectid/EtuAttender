@@ -33,4 +33,6 @@ public class UserService {
     public ArrayList<User> getAll(){
         return (ArrayList<User>) userRepository.findAll();
     }
+
+
 }

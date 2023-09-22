@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.*;
 
 @Entity(name = "users")
 @Data
@@ -31,5 +31,16 @@ public class User {
     private String cookie;
 
     @Column
-    private LocalDateTime localDateTime;
+    private LocalDateTime cookieLifetime;
+
+    @Column
+    private boolean autoCheck=false;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Column
+    private List<String> autoCheckLessons;
+
+    @Column
+    private Date closestLesson;
+
 }
