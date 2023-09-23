@@ -1,8 +1,9 @@
-package com.rect.etuattender.model.user;
+package com.rect.etuattender.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.modelmapper.ModelMapper;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -36,14 +37,14 @@ public class User {
     @Column
     private boolean autoCheck=false;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Column
-    private List<String> autoCheckLessons;
-
     @Column
     private String closestLesson;
 
     @Column
-    private Date closestLessonDate;
+    private Date startOfClosestLesson;
+
+    @Column
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<Lesson> lessons;
 
 }

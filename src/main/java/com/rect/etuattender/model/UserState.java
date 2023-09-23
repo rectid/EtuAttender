@@ -1,4 +1,4 @@
-package com.rect.etuattender.model.user;
+package com.rect.etuattender.model;
 
 public enum UserState {
     IN_MAIN_MENU {},

@@ -2,8 +2,8 @@ package com.rect.etuattender.controller;
 
 
 import com.rect.etuattender.config.BotConfig;
-import com.rect.etuattender.model.user.User;
-import com.rect.etuattender.model.user.UserState;
+import com.rect.etuattender.model.User;
+import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.UserService;
 import com.rect.etuattender.states.EnterLk;
 import com.rect.etuattender.states.LessonMenu;

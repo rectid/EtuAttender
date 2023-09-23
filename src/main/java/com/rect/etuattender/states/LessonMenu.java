@@ -1,26 +1,23 @@
 package com.rect.etuattender.states;
 
-import com.rect.etuattender.model.lesson.Lesson;
-import com.rect.etuattender.model.user.User;
-import com.rect.etuattender.model.user.UserState;
+import com.rect.etuattender.dto.lesson.LessonDto;
+import com.rect.etuattender.model.Lesson;
+import com.rect.etuattender.model.User;
+import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.EtuApiService;
 import com.rect.etuattender.service.InlineKeyboardMarkupService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.AbstractResource;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import javax.xml.crypto.Data;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Component
 public class LessonMenu {
@@ -32,12 +29,15 @@ public class LessonMenu {
     private final EtuApiService etuApiService;
     private final UserService userService;
 
+    private final ModelMapper modelMapper;
+
     @Autowired
-    public LessonMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService) {
+    public LessonMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService, ModelMapper modelMapper) {
         this.replyKeyboardMarkupService = replyKeyboardMarkupService;
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
         this.etuApiService = etuApiService;
         this.userService = userService;
+        this.modelMapper = modelMapper;
     }
 
 
@@ -46,13 +46,16 @@ public class LessonMenu {
         this.user=user;
         String command = update.getMessage().getText();
 
-        List<Lesson>  lessons = etuApiService.getLessons(user);
+        List<LessonDto> lessonDtos = etuApiService.getLessons(user);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
+//        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
+        List<Lesson> lessons = modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {}.getType());
         this.lessons = lessons;
-        for (Lesson lesson:
-             lessons) {
-            if (lesson.start.after(new Date(1695369781429L))){
-                user.setClosestLesson(String.valueOf(lesson.id));
-                user.setClosestLessonDate(lesson.start);
+        for (Lesson lesson :
+                lessons) {
+            if (lesson.getStartDate().after(new Date(1695369781429L))){
+                user.setClosestLesson(lesson.getId());
+                user.getLessons().add(lesson);
                 userService.saveUser(user);
                 break;
             }
@@ -79,11 +82,10 @@ public class LessonMenu {
 
     private BotApiMethod changeAutoCheckStatus(String data){
         if (user.isAutoCheck()){
-                    user.getAutoCheckLessons().clear();
+                    user.getLessons().clear();
                     user.setAutoCheck(false);
                 } else {
-//            user.getAutoCheckLessons().putAll(etuApiService.getLessons(user).stream().map(lesson -> String.valueOf(lesson.id)).toList());
-            user.setAutoCheckLessons(lessons.stream().map(lesson -> String.valueOf(lesson.id)).toList());
+            user.setLessons(lessons);
             user.setAutoCheck(true);
         }
         userService.saveUser(user);
@@ -98,10 +100,13 @@ public class LessonMenu {
 
 
     private BotApiMethod changeLessonStatus(String data){
-        if (user.getAutoCheckLessons().contains(data)) {
-                user.getAutoCheckLessons().remove(data);
+        user.getLessons().stream().parallel().forEach(lesson -> {
+            if (Objects.equals(lesson.getId(),data)) {
+                user.getLessons().remove(lesson);
             } else {
-                user.getAutoCheckLessons().add(data);}
+                user.getLessons().add(lesson);
+            }
+        });
          userService.saveUser(user);
         EditMessageText message = new EditMessageText();
         message.setChatId(update.getMessage().getChatId());
@@ -112,9 +117,8 @@ public class LessonMenu {
     }
 
     private BotApiMethod inLessonMenu() {
-        userService.saveUser(user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня:");
-        message.setReplyMarkup(inlineKeyboardMarkupService.getLessonButtons(etuApiService.getLessons(user),user));
+        message.setReplyMarkup(inlineKeyboardMarkupService.getLessonButtons(lessons,user));
         return message;
     }
 

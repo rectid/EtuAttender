@@ -1,6 +1,6 @@
 package com.rect.etuattender.service;
 
-import com.rect.etuattender.model.user.User;
+import com.rect.etuattender.model.User;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;

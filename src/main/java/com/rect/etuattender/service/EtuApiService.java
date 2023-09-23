@@ -2,13 +2,9 @@ package com.rect.etuattender.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.rect.etuattender.model.lesson.Lesson;
-import com.rect.etuattender.model.user.User;
-import lombok.SneakyThrows;
+import com.rect.etuattender.dto.lesson.LessonDto;
+import com.rect.etuattender.model.User;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -34,7 +30,6 @@ public class EtuApiService {
         this.userService = userService;
     }
 
-    @SneakyThrows
     public String auth(User user, String[] lk) {
         try {
 
@@ -144,26 +139,48 @@ public class EtuApiService {
             return "ok";
 
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             log.error("Auth error!" + user.getId());
             return "server_error";
         }
     }
 
-    public List<Lesson> getLessons(User user) {
+    public List<LessonDto> getLessons(User user) {
         HttpClient client = HttpClient.newBuilder().build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in"))
                 .setHeader("Cookie", user.getCookie())
                 .GET()
                 .build();
-        List<Lesson> lessons;
+        List<LessonDto> lessonDtos;
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            lessons = Arrays.stream(objectMapper.readValue(response.body(), Lesson[].class)).toList();
+            lessonDtos = Arrays.stream(objectMapper.readValue(response.body(), LessonDto[].class)).toList();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return lessons;
+        return lessonDtos;
+    }
+
+    public void check(User user, String lessonId){
+        HttpClient client = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/"+lessonId))
+                    .setHeader("Cookie", user.getCookie())
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode()==200){
+                log.info("ok"+user);
+            }
+            if (response.body().contains("истекло")){
+                throw new IOException();
+            }
+        } catch (IOException | InterruptedException e) {
+            log.error("Problem with check "+user.getNick()+", lesson "+lessonId);
+        }
+
     }
 }

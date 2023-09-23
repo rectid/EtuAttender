@@ -1,6 +1,6 @@
 package com.rect.etuattender.service;
 
-import com.rect.etuattender.model.user.User;
+import com.rect.etuattender.model.User;
 import com.rect.etuattender.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
