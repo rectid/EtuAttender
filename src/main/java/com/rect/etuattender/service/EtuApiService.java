@@ -95,9 +95,7 @@ public class EtuApiService {
             allLoginCookie = xsrfToken + "; " + lkSessionToken;
 
             document = Jsoup.parse(response.body());
-            if (document.hasSameValue("Неверный логин или пароль")) {
-                return "lk_error";
-            }
+
             elements = document.getElementsByAttributeValue("name", "_token");
             token = elements.attr("value");
             elements = document.getElementsByAttributeValue("name", "auth_token");
@@ -112,6 +110,9 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode()==419) {
+                return "lk_error";
+            }
 
             String cookieRedirect = response.headers().firstValue("Location").get();
 

@@ -48,7 +48,8 @@ public class EnterLk {
     private Object auth() {
         String[] lk = update.getMessage().getText().split(":");
         if (lk.length!=2){
-            return UserState.ENTERING_LK;
+            SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неправильный формат!");
+                return message;
         }
         switch (etuApiService.auth(user,lk)){
             case "ok":
