@@ -7,6 +7,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -20,7 +22,7 @@ public class InlineKeyboardMarkupService {
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
         for (Lesson lesson :
                 lessons) {
-            if (lesson.getStartDate().getDay()!=new Date(System.currentTimeMillis()).getDay()){
+            if (!lesson.getStartDate().equals(LocalDate.now())){
                 continue;
             }
             var button = new InlineKeyboardButton();
@@ -28,14 +30,14 @@ public class InlineKeyboardMarkupService {
             final String OLD_FORMAT = "YYYY-MM-DD hh:mm:ss";
             final String NEW_FORMAT = "hh:mm";
             SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT);
-            Date date = lesson.getStartDate();
+            LocalDateTime date = lesson.getStartDate();
             sdf.applyPattern(NEW_FORMAT);
             String newDateString = sdf.format(date);
 
             if (user.getLessons().contains(lesson)){
             button.setText(newDateString + " - " + lesson.getShortTitle() + " - " + lesson.getRoom()+ " \u2714");}
             else { button.setText(newDateString + " - " + lesson.getShortTitle() + " - " + lesson.getRoom()+ " \u274C");}
-            button.setCallbackData(lesson.getId());
+            button.setCallbackData(lesson.getLessonId());
             rowInLine.add(button);
             rowsInLine.add(rowInLine);
             rowInLine = new ArrayList<>();

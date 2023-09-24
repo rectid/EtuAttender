@@ -2,6 +2,7 @@ package com.rect.etuattender.service;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rect.etuattender.dto.lesson.LessonDto;
 import com.rect.etuattender.model.User;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ import java.util.*;
 @Slf4j
 public class EtuApiService {
     private final UserService userService;
-    private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).registerModule(new JavaTimeModule());
 
     public EtuApiService(UserService userService) {
         this.userService = userService;

@@ -1,36 +1,34 @@
 package com.rect.etuattender.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.annotations.Type;
+import org.springframework.boot.autoconfigure.graphql.ConditionalOnGraphQlSchema;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 
-@Entity(name = "autocheck_lessons")
-@Data
+@Entity(name = "lessons")
+@Getter
+@Setter
 public class Lesson {
 
-    public Lesson(String id, Date startDate, Date endDate, String room, boolean selfReported, String shortTitle, User user){
-        this.id = id;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.room = room;
-        this.selfReported = selfReported;
-        this.shortTitle = shortTitle;
-        this.user = user;
-    }
-
-    public Lesson() {
-    }
-
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
-    private String id;
+    private long id;
 
     @Column
-    private Date startDate;
+    private String lessonId;
 
-    @Column
-    private Date endDate;
+    @Column(columnDefinition = "TIMESTAMP")
+    private LocalDateTime startDate;
+
+    @Column(columnDefinition = "TIMESTAMP")
+    private LocalDateTime endDate;
 
     @Column
     private String room;
@@ -41,7 +39,7 @@ public class Lesson {
     @Column
     private String shortTitle;
 
-    @JoinColumn
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
 }

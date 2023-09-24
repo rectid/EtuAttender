@@ -3,13 +3,19 @@ package com.rect.etuattender.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.Cascade;
 import org.modelmapper.ModelMapper;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity(name = "users")
-@Data
+@Getter
+@Setter
 public class User {
 
     @Id
@@ -31,7 +37,7 @@ public class User {
     @Column
     private String cookie;
 
-    @Column
+    @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime cookieLifetime;
 
     @Column
@@ -40,11 +46,11 @@ public class User {
     @Column
     private String closestLesson;
 
-    @Column
-    private Date startOfClosestLesson;
+    @Column(columnDefinition = "TIMESTAMP")
+    private LocalDateTime startOfClosestLesson;
 
     @Column
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<Lesson> lessons;
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<Lesson> lessons = new ArrayList<>();
 
 }

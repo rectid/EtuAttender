@@ -3,6 +3,7 @@ package com.rect.etuattender.service;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Optional;

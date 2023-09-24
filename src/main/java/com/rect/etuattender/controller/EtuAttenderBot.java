@@ -2,6 +2,7 @@ package com.rect.etuattender.controller;
 
 
 import com.rect.etuattender.config.BotConfig;
+import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.UserService;
@@ -10,10 +11,13 @@ import com.rect.etuattender.states.LessonMenu;
 import com.rect.etuattender.states.MainMenu;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Component
