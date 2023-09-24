@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rect.etuattender.dto.lesson.LessonDto;
+import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -25,10 +28,12 @@ import java.util.*;
 @Slf4j
 public class EtuApiService {
     private final UserService userService;
+    private final ModelMapper modelMapper;
     private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).registerModule(new JavaTimeModule());
 
-    public EtuApiService(UserService userService) {
+    public EtuApiService(UserService userService, ModelMapper modelMapper) {
         this.userService = userService;
+        this.modelMapper = modelMapper;
     }
 
     public String auth(User user, String[] lk) {
@@ -146,7 +151,7 @@ public class EtuApiService {
         }
     }
 
-    public List<LessonDto> getLessons(User user) {
+    public List<Lesson> getLessons(User user) {
         HttpClient client = HttpClient.newBuilder().build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in"))
@@ -160,7 +165,11 @@ public class EtuApiService {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return lessonDtos;
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId,Lesson::setLessonId);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
+        List<Lesson> lessons = modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {}.getType());
+        return lessons;
     }
 
     public void check(User user, String lessonId){

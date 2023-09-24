@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,17 +24,14 @@ public class InlineKeyboardMarkupService {
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
         for (Lesson lesson :
                 lessons) {
-            if (!lesson.getStartDate().equals(LocalDate.now())){
+            if (lesson.getStartDate().getDayOfYear()!=LocalDate.now().getDayOfYear()){
                 continue;
             }
             var button = new InlineKeyboardButton();
 
-            final String OLD_FORMAT = "YYYY-MM-DD hh:mm:ss";
-            final String NEW_FORMAT = "hh:mm";
-            SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT);
             LocalDateTime date = lesson.getStartDate();
-            sdf.applyPattern(NEW_FORMAT);
-            String newDateString = sdf.format(date);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            String newDateString = date.format(formatter);
 
             if (user.getLessons().contains(lesson)){
             button.setText(newDateString + " - " + lesson.getShortTitle() + " - " + lesson.getRoom()+ " \u2714");}

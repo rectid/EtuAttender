@@ -49,6 +49,9 @@ public class User {
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime startOfClosestLesson;
 
+    @Column(columnDefinition = "TIMESTAMP")
+    private LocalDateTime endOfClosestLesson;
+
     @Column
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();

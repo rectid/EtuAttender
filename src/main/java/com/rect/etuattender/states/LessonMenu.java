@@ -48,25 +48,9 @@ public class LessonMenu {
     public Object select(Update update, User user){
         this.update=update;
         this.user=user;
+        this.lessons = etuApiService.getLessons(user);
         String command = update.getMessage().getText();
 
-        List<LessonDto> lessonDtos = etuApiService.getLessons(user);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId,Lesson::setLessonId);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getStart,Lesson::setStartDate);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getEnd,Lesson::setEndDate);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
-        List<Lesson> lessons = modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {}.getType());
-        this.lessons = lessons;
-        for (Lesson lesson :
-                lessons) {
-            if (lesson.getStartDate().isAfter(LocalDateTime.now())){
-                user.setClosestLesson(lesson.getLessonId());
-                user.setStartOfClosestLesson(lesson.getStartDate());
-                break;
-            }
-        }
-        userService.saveUser(user);
         if (update.getCallbackQuery()!=null){
             String data = update.getCallbackQuery().getData();
             if (data.equals("AUTO_CHECK")){
@@ -123,7 +107,7 @@ public class LessonMenu {
     }
 
     private BotApiMethod inLessonMenu() {
-        userService.saveUser(user);
+        userService.updateUserClosestLesson(user,lessons);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getLessonButtons(lessons,user));
         return message;
