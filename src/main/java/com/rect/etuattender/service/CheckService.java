@@ -1,5 +1,6 @@
 package com.rect.etuattender.service;
 
+import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -7,7 +8,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -68,15 +68,12 @@ public class CheckService {
                     etuApiService.check(user, user.getClosestLesson());
                 }
 
-                System.out.println(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
                 long nextLessonDate = userService.getAll().stream().parallel().mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().getAsLong();
                 delay = nextLessonDate-LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)+10;
-                log.info(nextLessonDate + " " + delay);
                 if (delay<=0){
-                    long temp = LocalDateTime.now().getHour()*3600+LocalDateTime.now().getMinute()*60;
-                    long mondayTime = LocalDateTime.now().with(DayOfWeek.MONDAY).toEpochSecond(ZoneOffset.UTC)-temp;
-                    delay=LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)-mondayTime+10;
+                    delay=3600;
                 }
+                log.info(nextLessonDate + " " + delay);
                 executor.schedule(this, delay, TimeUnit.SECONDS);
                 return null;
             }

@@ -36,7 +36,7 @@ public class UserService {
     }
 
     public List<User> getAll(){
-        List<User> users =  userRepository.findAll().stream().filter(user -> user.getState()!=UserState.ENTERING_LK).toList();
+        List<User> users =  userRepository.findAll();
         return users;
     }
 

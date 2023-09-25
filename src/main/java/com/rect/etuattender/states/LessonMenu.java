@@ -1,25 +1,17 @@
 package com.rect.etuattender.states;
 
-import com.rect.etuattender.dto.lesson.LessonDto;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
-import com.rect.etuattender.service.EtuApiService;
-import com.rect.etuattender.service.InlineKeyboardMarkupService;
-import com.rect.etuattender.service.ReplyKeyboardMarkupService;
-import com.rect.etuattender.service.UserService;
+import com.rect.etuattender.service.*;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.AbstractResource;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -32,15 +24,17 @@ public class LessonMenu {
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final EtuApiService etuApiService;
     private final UserService userService;
+    private final CheckService checkService;
 
     private final ModelMapper modelMapper;
 
     @Autowired
-    public LessonMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService, ModelMapper modelMapper) {
+    public LessonMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService, CheckService checkService, ModelMapper modelMapper) {
         this.replyKeyboardMarkupService = replyKeyboardMarkupService;
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
         this.etuApiService = etuApiService;
         this.userService = userService;
+        this.checkService = checkService;
         this.modelMapper = modelMapper;
     }
 
@@ -50,6 +44,7 @@ public class LessonMenu {
         this.user=user;
         this.lessons = etuApiService.getLessons(user);
         String command = update.getMessage().getText();
+        userService.updateUserClosestLesson(user,lessons);
 
         if (update.getCallbackQuery()!=null){
             String data = update.getCallbackQuery().getData();
@@ -79,6 +74,7 @@ public class LessonMenu {
             user.setAutoCheck(true);
         }
         userService.saveUser(user);
+        checkService.initChecking();
          EditMessageText message = new EditMessageText();
         message.setChatId(update.getMessage().getChatId());
         message.setMessageId(update.getMessage().getMessageId());
@@ -98,6 +94,7 @@ public class LessonMenu {
             user.getLessons().add(listLesson);
         }
         userService.saveUser(user);
+        checkService.initChecking();
         EditMessageText message = new EditMessageText();
         message.setChatId(update.getMessage().getChatId());
         message.setMessageId(update.getMessage().getMessageId());
@@ -107,7 +104,6 @@ public class LessonMenu {
     }
 
     private BotApiMethod inLessonMenu() {
-        userService.updateUserClosestLesson(user,lessons);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getLessonButtons(lessons,user));
         return message;
