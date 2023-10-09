@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.generics.BotSession;
 
 import java.util.ArrayList;
 import java.util.List;

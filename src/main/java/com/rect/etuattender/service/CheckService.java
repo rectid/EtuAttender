@@ -26,27 +26,6 @@ public class CheckService {
         this.etuApiService = etuApiService;
     }
 
-    public ArrayList<User> getRequiredUsers() {
-        Callable<List<User>> c = () -> userService.getAll();
-
-        List<User> allUsers = null;
-        try {
-            allUsers = c.call();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        ArrayList<User> requiredUsers = new ArrayList<>();
-        allUsers.stream().parallel().forEach(user -> {
-            userService.updateUserClosestLesson(user, etuApiService.getLessons(user));
-            if ((user.getStartOfClosestLesson().isBefore(LocalDateTime.now()) && user.getEndOfClosestLesson().isAfter(LocalDateTime.now())) || user.getStartOfClosestLesson().isEqual(LocalDateTime.now())) {
-                if (user.getLessons().stream().anyMatch(lesson -> lesson.getLessonId().equals(user.getClosestLesson()))) {
-                    requiredUsers.add(user);
-                }
-            }
-        });
-        return requiredUsers;
-    }
-
     @EventListener({ContextRefreshedEvent.class})
     public void initChecking() {
         executeScheduledTask();
@@ -55,17 +34,28 @@ public class CheckService {
 
     public void executeScheduledTask() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        ArrayList<User> users = new ArrayList<>();
+        List<User> users = new ArrayList<>();
         Callable<Void> task = new Callable<>() {
             @SneakyThrows
             public Void call() {
                 long delay = 0;
-
+                Callable<List<User>> c = userService::getAll;
                 users.clear();
-                users.addAll(getRequiredUsers());
+                users.addAll(c.call());
+                System.out.println(LocalDateTime.now());
                 for (User user :
                         users) {
-                    etuApiService.check(user, user.getClosestLesson());
+                    for (Lesson lesson:
+                         user.getLessons()) {
+                        if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())){
+                            if (!lesson.isSelfReported()) {
+                                etuApiService.check(user, lesson.getLessonId());
+                                lesson.setSelfReported(true);
+                            }
+                        }
+                    };
+                    userService.updateUserClosestLesson(user,etuApiService.getLessons(user));
+
                 }
 
                 long nextLessonDate = userService.getAll().stream().parallel().mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().getAsLong();

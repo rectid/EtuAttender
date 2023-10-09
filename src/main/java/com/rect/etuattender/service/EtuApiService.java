@@ -174,6 +174,7 @@ public class EtuApiService {
     }
 
     public void check(User user, String lessonId){
+        System.out.println("THERE!");
         HttpClient client = HttpClient.newBuilder().build();
         HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/"+lessonId))

@@ -73,13 +73,13 @@ public class LessonMenu {
             user.setLessons(lessons);
             user.setAutoCheck(true);
         }
-        userService.saveUser(user);
-        checkService.initChecking();
          EditMessageText message = new EditMessageText();
         message.setChatId(update.getMessage().getChatId());
         message.setMessageId(update.getMessage().getMessageId());
-        message.setReplyMarkup(inlineKeyboardMarkupService.editLessonButtons(data,update.getMessage().getReplyMarkup()));
+        message.setReplyMarkup(inlineKeyboardMarkupService.editLessonButtons(user,data,update.getMessage().getReplyMarkup()));
         message.setText(update.getMessage().getText());
+        userService.saveUser(user);
+        checkService.initChecking();
         return message;
     }
 
@@ -93,13 +93,13 @@ public class LessonMenu {
         } else {
             user.getLessons().add(listLesson);
         }
-        userService.saveUser(user);
-        checkService.initChecking();
         EditMessageText message = new EditMessageText();
         message.setChatId(update.getMessage().getChatId());
         message.setMessageId(update.getMessage().getMessageId());
-        message.setReplyMarkup(inlineKeyboardMarkupService.editLessonButtons(data,update.getMessage().getReplyMarkup()));
+        message.setReplyMarkup(inlineKeyboardMarkupService.editLessonButtons(user,data,update.getMessage().getReplyMarkup()));
         message.setText(update.getMessage().getText());
+        userService.saveUser(user);
+        checkService.initChecking();
         return message;
     }
 

@@ -6,13 +6,10 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,29 +57,38 @@ public class InlineKeyboardMarkupService {
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup editLessonButtons(String data, InlineKeyboardMarkup replyMarkup) {
+    public InlineKeyboardMarkup editLessonButtons(User user, String data, InlineKeyboardMarkup replyMarkup) {
         List<List<InlineKeyboardButton>> rowsInLine = replyMarkup.getKeyboard();
         for (List<InlineKeyboardButton> rowInLine :
                 rowsInLine) {
             for (InlineKeyboardButton button :
                     rowInLine) {
 
+
                 if (data.equals("AUTO_CHECK")) {
-                    if (rowInLine.get(rowInLine.size() - 1).getText().contains("✔")) {
-                        button.setText(button.getText().replace("✔", "❌"));
-                    } else button.setText(button.getText().replace("❌", "✔"));
-                    if (button.getCallbackData().equals("AUTO_CHECK")) {
-                        break;
-                    }
+                    if (user.isAutoCheck()){
+                        button.setText(button.getText().replace("❌", "✔"));
+                    } else button.setText(button.getText().replace("✔", "❌"));
+                    continue;
                 }
+
+
+
+
 
                 if (button.getCallbackData().equals(data)) {
-                    if (button.getText().contains("\u2714")) {
+
+                    InlineKeyboardButton autoButton = rowsInLine.get(rowsInLine.size() - 1).get(0);
+                    autoButton.setText("Авто-посещение ❌");
+                    user.setAutoCheck(false);
+                    user.setLessons(user.getLessons().stream().filter(lesson -> lesson.getStartDate().getDayOfYear()==LocalDateTime.now().getDayOfYear()).toList());
+
+                    if (button.getText().contains("✔")) {
                         button.setText(button.getText().replace("✔", "❌"));
                     } else button.setText(button.getText().replace("❌", "✔"));
-
-
                 }
+
+
             }
         }
         return replyMarkup;
