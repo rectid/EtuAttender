@@ -33,18 +33,20 @@ public class CheckService {
 
 
     public void executeScheduledTask() {
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        ExecutorService checkExecutor = Executors.newSingleThreadScheduledExecutor();
         List<User> users = new ArrayList<>();
         Callable<Void> task = new Callable<>() {
             @SneakyThrows
             public Void call() {
+                log.info(LocalDateTime.now().toString());
                 long delay = 0;
                 Callable<List<User>> c = userService::getAll;
                 users.clear();
                 users.addAll(c.call());
-                System.out.println(LocalDateTime.now());
                 for (User user :
                         users) {
+                    checkExecutor.execute(() -> {
                     for (Lesson lesson:
                          user.getLessons()) {
                         if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())){
@@ -53,7 +55,7 @@ public class CheckService {
                                 lesson.setSelfReported(true);
                             }
                         }
-                    };
+                    }});
                     userService.updateUserClosestLesson(user,etuApiService.getLessons(user));
 
                 }
@@ -63,11 +65,11 @@ public class CheckService {
                 if (delay<=0){
                     delay=3600;
                 }
-                log.info(nextLessonDate + " " + delay);
-                executor.schedule(this, delay, TimeUnit.SECONDS);
+                log.info(LocalDateTime.ofEpochSecond(nextLessonDate,0,ZoneOffset.UTC) + " " + delay);
+                scheduler.schedule(this, delay, TimeUnit.SECONDS);
                 return null;
             }
         };
-        executor.schedule(task, 1, TimeUnit.SECONDS);
+        scheduler.schedule(task, 1, TimeUnit.SECONDS);
     }
 }

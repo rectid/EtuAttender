@@ -142,6 +142,7 @@ public class EtuApiService {
             user.setCookie(cookie);
             user.setCookieLifetime(localDateTime);
             userService.saveUser(user);
+            log.info("User " + user.getNick() + " registered!");
 
             return "ok";
 
@@ -174,7 +175,6 @@ public class EtuApiService {
     }
 
     public void check(User user, String lessonId){
-        System.out.println("THERE!");
         HttpClient client = HttpClient.newBuilder().build();
         HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/"+lessonId))
@@ -185,9 +185,8 @@ public class EtuApiService {
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode()==200){
-                log.info("ok"+user);
-            }
-            if (response.body().contains("истекло")){
+                log.info("Checked "+user+", lesson "+lessonId);
+            } else {
                 throw new IOException();
             }
         } catch (IOException | InterruptedException e) {
