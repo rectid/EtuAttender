@@ -4,6 +4,7 @@ public enum UserState {
     IN_MAIN_MENU {},
     ENTERING_LK {},
     IN_LESSONS_MENU {},
-    IN_ADMIN_PANEL {};
+    IN_ADMIN_PANEL {},
+    IN_BAN{};
 
 }

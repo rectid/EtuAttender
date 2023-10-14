@@ -46,21 +46,25 @@ public class CheckService {
                 users.addAll(c.call());
                 for (User user :
                         users) {
+                    if (user.getCookie()==null || user.getCookieLifetime().isBefore(LocalDateTime.now())){
+                        continue;
+                    }
                     checkExecutor.execute(() -> {
                     for (Lesson lesson:
                          user.getLessons()) {
                         if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())){
-                            if (!lesson.isSelfReported()) {
-                                etuApiService.check(user, lesson.getLessonId());
+//                            if (!lesson.isSelfReported()) { some problems with check
+                                if(etuApiService.check(user, lesson.getLessonId())){
                                 lesson.setSelfReported(true);
-                            }
+                                }
+//                            }
                         }
                     }});
                     userService.updateUserClosestLesson(user,etuApiService.getLessons(user));
 
                 }
-
-                long nextLessonDate = userService.getAll().stream().parallel().mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().getAsLong();
+                List<User> userList = userService.getAll().stream().filter(user -> user.getCookie()!=null && user.getCookieLifetime().isAfter(LocalDateTime.now()) && user.getStartOfClosestLesson()!=null).toList();
+                long nextLessonDate = userList.stream().parallel().mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().getAsLong();
                 delay = nextLessonDate-LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)+10;
                 if (delay<=0){
                     delay=3600;

@@ -3,6 +3,7 @@ package com.rect.etuattender.service;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
@@ -92,5 +93,73 @@ public class InlineKeyboardMarkupService {
             }
         }
         return replyMarkup;
+    }
+
+    public InlineKeyboardMarkup getUsersButtons(Update update, List<User> users, int page){
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        int offset = page*8;
+        int buttonCounter = 0;
+        if (users.size()<=8) {
+            for (int i=offset;i<users.size();i++) {
+                User user = users.get(i);
+                var button = new InlineKeyboardButton();
+                button.setText(user.getNick());
+                button.setCallbackData(String.valueOf(user.getNick()));
+                rowInLine.add(button);
+                rowsInLine.add(rowInLine);
+                rowInLine = new ArrayList<>();
+            }
+            if (page!=0){
+                var button = new InlineKeyboardButton();
+                button.setCallbackData("Back");
+                button.setText("Назад");
+                rowInLine.add(button);
+                rowsInLine.add(rowInLine);
+            }
+
+        } else {
+            for (int i=offset;i<users.size();i++) {
+                User user = users.get(i);
+                var button = new InlineKeyboardButton();
+                button.setText(user.getNick());
+                button.setCallbackData(String.valueOf(user.getNick()));
+                rowInLine.add(button);
+                rowsInLine.add(rowInLine);
+                rowInLine = new ArrayList<>();
+                buttonCounter++;
+                if (buttonCounter==8){break;}
+            }
+            if (page!=0){
+                var button = new InlineKeyboardButton();
+                button.setCallbackData("Back");
+                button.setText("Назад");
+                rowInLine.add(button);
+            }
+            if (users.size()-(offset+8)>0){
+                var button = new InlineKeyboardButton();
+                button.setText("Далее");
+                button.setCallbackData("Next");
+                rowInLine.add(button);
+            }
+            rowsInLine.add(rowInLine);}
+
+        inlineKeyboardMarkup.setKeyboard(rowsInLine);
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup getAdminButtons(Update update, User user){
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        var button = new InlineKeyboardButton();
+        button.setCallbackData("Ban");
+        if (!user.getRole().equals("BANNED")){
+        button.setText("Выдать бан");}else button.setText("Разбанить");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        inlineKeyboardMarkup.setKeyboard(rowsInLine);
+        return inlineKeyboardMarkup;
     }
 }

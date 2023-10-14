@@ -53,6 +53,12 @@ public class User {
     private LocalDateTime endOfClosestLesson;
 
     @Column
+    private int page=0;
+
+    @Column
+    private String lastSearch;
+
+    @Column
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 

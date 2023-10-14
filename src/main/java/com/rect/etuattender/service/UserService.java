@@ -22,7 +22,7 @@ public class UserService {
 
 
     public Optional<User> getUser(long id){
-        Optional<User> user = userRepository.findById(Math.toIntExact(id));
+        Optional<User> user = userRepository.findById(id);
         return user;
     }
 
