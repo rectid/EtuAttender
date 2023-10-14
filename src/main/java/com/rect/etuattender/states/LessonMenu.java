@@ -4,7 +4,6 @@ import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.*;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -12,7 +11,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Component
@@ -20,22 +18,20 @@ public class LessonMenu {
     private Update update;
     private User user;
     private List<Lesson> lessons = new ArrayList<>();
-    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final EtuApiService etuApiService;
     private final UserService userService;
     private final CheckService checkService;
 
-    private final ModelMapper modelMapper;
+    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
 
     @Autowired
-    public LessonMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService, CheckService checkService, ModelMapper modelMapper) {
-        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
+    public LessonMenu(InlineKeyboardMarkupService inlineKeyboardMarkupService, EtuApiService etuApiService, UserService userService, CheckService checkService, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
         this.etuApiService = etuApiService;
         this.userService = userService;
         this.checkService = checkService;
-        this.modelMapper = modelMapper;
+        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
     }
 
 
@@ -44,7 +40,7 @@ public class LessonMenu {
         this.user=user;
         this.lessons = etuApiService.getLessons(user);
         String command = update.getMessage().getText();
-        userService.updateUserClosestLesson(user,lessons);
+//        userService.updateUserClosestLesson(user,lessons);
 
         if (update.getCallbackQuery()!=null){
             String data = update.getCallbackQuery().getData();

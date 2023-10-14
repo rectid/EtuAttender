@@ -53,11 +53,11 @@ public class CheckService {
                     for (Lesson lesson:
                          user.getLessons()) {
                         if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())){
-//                            if (!lesson.isSelfReported()) { some problems with check
-                                if(etuApiService.check(user, lesson.getLessonId())){
-                                lesson.setSelfReported(true);
+                            if (!lesson.isSelfReported()) {
+                                if (etuApiService.check(user, lesson.getLessonId())) {
+                                    lesson.setSelfReported(true);
                                 }
-//                            }
+                            }
                         }
                     }});
                     userService.updateUserClosestLesson(user,etuApiService.getLessons(user));
