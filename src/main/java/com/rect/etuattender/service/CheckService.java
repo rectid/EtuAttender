@@ -2,11 +2,15 @@ package com.rect.etuattender.service;
 
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
+import com.rect.etuattender.model.UserState;
+import com.rect.etuattender.states.LessonMenu;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -46,7 +50,11 @@ public class CheckService {
                 users.addAll(c.call());
                 for (User user :
                         users) {
+
+
                     if (user.getCookie()==null || user.getCookieLifetime().isBefore(LocalDateTime.now())){
+                        user.setState(UserState.IN_MAIN_MENU);
+                        userService.saveUser(user);
                         continue;
                     }
                     checkExecutor.execute(() -> {
@@ -63,6 +71,9 @@ public class CheckService {
                     userService.updateUserClosestLesson(user,etuApiService.getLessons(user));
 
                 }
+
+
+
                 List<User> userList = userService.getAll().stream().filter(user -> user.getCookie()!=null && user.getCookieLifetime().isAfter(LocalDateTime.now()) && user.getStartOfClosestLesson()!=null).toList();
                 long nextLessonDate = userList.stream().parallel().mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().getAsLong();
                 delay = nextLessonDate-LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)+10;

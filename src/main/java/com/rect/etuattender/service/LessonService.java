@@ -8,7 +8,6 @@ import java.util.List;
 
 @Service
 public class LessonService {
-
     private final LessonRepository lessonRepository;
 
     public LessonService(LessonRepository lessonRepository) {

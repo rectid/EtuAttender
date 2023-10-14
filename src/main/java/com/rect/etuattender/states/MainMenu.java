@@ -12,6 +12,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
+import java.time.LocalDateTime;
+
 @Component
 public class MainMenu {
 
@@ -32,6 +34,9 @@ public class MainMenu {
         this.update=update;
         this.user=user;
         String command = update.getMessage().getText();
+        if (command.equals("Расписание")&&user.getCookieLifetime().isBefore(LocalDateTime.now())){
+            return inMainMenu();
+        }
         switch (command){
             case "Ввести данные ЛК": return UserState.ENTERING_LK;
             case "Панель Админа": return UserState.IN_ADMIN_PANEL;

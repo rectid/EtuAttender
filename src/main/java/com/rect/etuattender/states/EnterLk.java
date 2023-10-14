@@ -3,6 +3,7 @@ package com.rect.etuattender.states;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.EtuApiService;
+import com.rect.etuattender.service.InlineKeyboardMarkupService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +20,14 @@ public class EnterLk {
     private User user;
 
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
+    private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final UserService userService;
     private final EtuApiService etuApiService;
 
     @Autowired
-    public EnterLk(ReplyKeyboardMarkupService replyKeyboardMarkupService, UserService userService, EtuApiService etuApiService) {
+    public EnterLk(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, UserService userService, EtuApiService etuApiService) {
         this.replyKeyboardMarkupService = replyKeyboardMarkupService;
+        this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
         this.userService = userService;
         this.etuApiService = etuApiService;
     }
@@ -66,7 +69,8 @@ public class EnterLk {
 
     private BotApiMethod inEnterLk() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update,user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите данные вашего лк лэти в формате логин:пароль");
+        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите данные вашего лк лэти в формате логин:пароль\n\n " +
+                "Для безопасности ваших данных в данный момент я не сохраняю ваши логин и пароль. Регистрация в боте действует 6 дней, далее потребуется заново пройти авторизацию");
         message.setReplyMarkup(replyKeyboardMarkup);
         return message;
     }
