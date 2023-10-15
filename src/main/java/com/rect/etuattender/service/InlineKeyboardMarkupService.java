@@ -17,7 +17,26 @@ import java.util.Optional;
 @Component
 public class InlineKeyboardMarkupService {
 
-    public InlineKeyboardMarkup getLessonButtons(List<Lesson> lessons, User user) {
+    public InlineKeyboardMarkup getAuthButtons() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        var button = new InlineKeyboardButton();
+        button.setCallbackData("SAVE");
+        button.setText("Сохранять логин и пароль");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        rowInLine = new ArrayList<>();
+        button = new InlineKeyboardButton();
+        button.setCallbackData("NOT_SAVE");
+        button.setText("Не сохранять логин и пароль");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        inlineKeyboardMarkup.setKeyboard(rowsInLine);
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup getAuthButtons(List<Lesson> lessons, User user) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
@@ -46,10 +65,10 @@ public class InlineKeyboardMarkupService {
         }
         var button = new InlineKeyboardButton();
         if (user.isAutoCheck()) {
-            button.setText("Авто-посещение ✔");
+            button.setText("Все пары ✔");
             ;
         } else {
-            button.setText("Авто-посещение ❌");
+            button.setText("Все пары ❌");
         }
         button.setCallbackData("AUTO_CHECK");
         rowInLine.add(button);
@@ -80,7 +99,7 @@ public class InlineKeyboardMarkupService {
                 if (button.getCallbackData().equals(data)) {
 
                     InlineKeyboardButton autoButton = rowsInLine.get(rowsInLine.size() - 1).get(0);
-                    autoButton.setText("Авто-посещение ❌");
+                    autoButton.setText("Все пары ❌");
                     user.setAutoCheck(false);
                     user.setLessons(user.getLessons().stream().filter(lesson -> lesson.getStartDate().getDayOfYear()==LocalDateTime.now().getDayOfYear()).toList());
 
@@ -149,7 +168,7 @@ public class InlineKeyboardMarkupService {
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup getAdminButtons(Update update, User user){
+    public InlineKeyboardMarkup getAdminButtons(User user){
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();

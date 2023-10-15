@@ -1,6 +1,7 @@
 package com.rect.etuattender.states;
 
 
+import com.rect.etuattender.controller.EtuAttenderBot;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.InlineKeyboardMarkupService;
@@ -24,6 +25,7 @@ public class AdminPanel {
     private final UserService userService;
     private User user;
     private Update update;
+    private EtuAttenderBot etuAttenderBot;
 
     @Autowired
     public AdminPanel(ReplyKeyboardMarkupService replyKeyboardMarkupService, InlineKeyboardMarkupService inlineKeyboardMarkupService, UserService userService) {
@@ -32,13 +34,16 @@ public class AdminPanel {
         this.userService = userService;
     }
 
-    public Object select(Update update, User user) {
+    public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
+        this.etuAttenderBot=etuAttenderBot;
         this.user=user;
         this.update=update;
         String command = update.getMessage().getText();
         switch (command) {
             case "Панель Админа":
                 return inAdminPanel(update);
+            case "Массовая рассылка":
+                return UserState.SENDING_MASS_MESSAGE;
             case "Назад":
             case "/start":
                 return UserState.IN_MAIN_MENU;
@@ -67,9 +72,11 @@ public class AdminPanel {
     }
 
     public BotApiMethod<Message> inAdminPanel(Update update) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update,user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите ник необходимого пользователя");
-//        message.setReplyMarkup(replyKeyboardMarkup);
+        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getAdminReplyButton();
+        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "С возвращением!");
+        message.setReplyMarkup(replyKeyboardMarkup);
+        etuAttenderBot.handle(message);
+        message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите ник необходимого пользователя");
         message.setReplyMarkup(inlineKeyboardMarkupService.getUsersButtons(update,userService.getAll(),userService.getUser(update.getMessage().getChatId()).get().getPage()));
         User user = userService.getUser(update.getMessage().getChatId()).get();
         user.setLastSearch("");
@@ -94,7 +101,7 @@ public class AdminPanel {
         message.setMessageId(update.getMessage().getMessageId());
         message.setText("Выбран пользователь: " + user.getNick() + " | " + user.getId()
                 + "\nРоль: " + user.getRole());
-        message.setReplyMarkup(inlineKeyboardMarkupService.getAdminButtons(update,user));
+        message.setReplyMarkup(inlineKeyboardMarkupService.getAdminButtons(user));
         return message;
     }
 
@@ -115,7 +122,7 @@ public class AdminPanel {
         }
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Выбран пользователь: " + user.getNick() + " | " + user.getId()
                 + "\nСтатус: " + status);
-        message.setReplyMarkup(inlineKeyboardMarkupService.getAdminButtons(update,user));
+        message.setReplyMarkup(inlineKeyboardMarkupService.getAdminButtons(user));
         return message;
     }
 }

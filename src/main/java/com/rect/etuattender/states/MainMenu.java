@@ -34,24 +34,45 @@ public class MainMenu {
         this.update=update;
         this.user=user;
         String command = update.getMessage().getText();
-        if (command.equals("Расписание")&&user.getCookieLifetime().isBefore(LocalDateTime.now())){
-            return inMainMenu();
+        if (user.getCookieLifetime()!=null) {
+            if (command.equals("Расписание") && user.getCookieLifetime().isBefore(LocalDateTime.now())) {
+                return authExpired();
+            }
         }
         switch (command){
-            case "Ввести данные ЛК": return UserState.ENTERING_LK;
+            case "Ввести данные ЛК","Изменить данные лк": return UserState.ENTERING_LK;
             case "Панель Админа": return UserState.IN_ADMIN_PANEL;
+            case "Информация": return getInfo();
             case "Расписание": return UserState.IN_LESSONS_MENU;
             case "Назад":
             case "/start":
                 return inMainMenu();
         }
+        if (user.getCookieLifetime()!=null){
+        if (user.getCookieLifetime().isBefore(LocalDateTime.now())){
+            return authExpired();
+        }}
         return error();
+    }
+
+    private BotApiMethod getInfo(){
+        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),
+                "\nТех поддержка: @rected" +
+                        "\n\nДанный бот предназначен для автоматический отметки на парах и просмотра расписания");
+        return message;
     }
 
      @SneakyThrows
      public BotApiMethod inMainMenu() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
+        message.setReplyMarkup(replyKeyboardMarkup);
+        return message;
+    }
+
+    public BotApiMethod authExpired(){
+        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
+        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!");
         message.setReplyMarkup(replyKeyboardMarkup);
         return message;
     }

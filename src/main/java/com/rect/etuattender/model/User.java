@@ -56,7 +56,13 @@ public class User {
     private int page=0;
 
     @Column
-    private String lastSearch;
+    private String lastSearch = " ";
+
+    @Column
+    private String login;
+
+    @Column
+    private String password;
 
     @Column
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)

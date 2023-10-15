@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.ArrayList;
 
 @Data
 public class LessonDto {
@@ -16,8 +16,9 @@ public class LessonDto {
     private boolean isDistant;
     private String room;
     private LessonInfoDto lesson;
+    private ArrayList<LessonTeacherDto> teachers;
     private boolean selfReported;
-    private Object groupLeaderReported;
+    private boolean groupLeaderReported;
     private boolean teacherReported;
     private boolean isGroupLeader;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")

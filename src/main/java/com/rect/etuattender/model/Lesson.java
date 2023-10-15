@@ -34,10 +34,15 @@ public class Lesson {
     private String room;
 
     @Column
-    private boolean selfReported;
+    private boolean selfReported = false;
+
+
 
     @Column
     private String shortTitle;
+
+    @Column
+    private String teacher;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

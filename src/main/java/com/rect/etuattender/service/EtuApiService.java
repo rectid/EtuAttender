@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rect.etuattender.dto.lesson.LessonDto;
+import com.rect.etuattender.dto.lesson.LessonTeacherDto;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import lombok.extern.slf4j.Slf4j;
@@ -171,9 +172,18 @@ public class EtuApiService {
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId,Lesson::setLessonId);
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
+        modelMapper.typeMap(LessonDto.class,Lesson.class).addMapping(src -> {
+            if (src.getTeachers() != null) {
+                return src.getTeachers().get(0).getSurname();
+            }
+            return null;
+        },Lesson::setTeacher);
+
+
         List<Lesson> lessons = modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {}.getType());
         return lessons;
     }
+
 
     public boolean check(User user, String lessonId){
         HttpClient client = HttpClient.newBuilder().build();
@@ -185,10 +195,7 @@ public class EtuApiService {
 
         try {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                log.info("Checked "+user.getNick()+", lesson "+lessonId);
-                if (user.getId()==898657398){
-                    System.out.println(response.body());
-                }
+                log.info("Checked "+user.getNick()+", lesson "+lessonId + ", response: "+response.body());
                 return true;
         } catch (IOException | InterruptedException e) {
             log.error("Problem with check "+user.getNick()+", lesson "+lessonId);

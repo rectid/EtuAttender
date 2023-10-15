@@ -18,7 +18,7 @@ public class ReplyKeyboardMarkupService {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow keyboardRow;
-        if ("Ввести данные ЛК".equals(command) || "Панель Админа".equals(command)) {
+        if ("Ввести данные ЛК".equals(command) || "Панель Админа".equals(command) || "Изменить выбор".equals(command)) {
             keyboardRow = new KeyboardRow();
             keyboardRow.add("Назад");
             keyboardRows.add(keyboardRow);
@@ -29,9 +29,21 @@ public class ReplyKeyboardMarkupService {
             keyboardRow = new KeyboardRow();
             keyboardRow.add("Ввести данные ЛК");
             keyboardRows.add(keyboardRow);
+            keyboardRow = new KeyboardRow();
+            keyboardRow.add("Информация");
+            keyboardRows.add(keyboardRow);
         } else {
             keyboardRow = new KeyboardRow();
             keyboardRow.add("Расписание");
+            keyboardRows.add(keyboardRow);
+            keyboardRow = new KeyboardRow();
+            keyboardRow.add("Полное расписание");
+            keyboardRows.add(keyboardRow);
+            keyboardRow = new KeyboardRow();
+            keyboardRow.add("Изменить данные ЛК");
+            keyboardRows.add(keyboardRow);
+            keyboardRow = new KeyboardRow();
+            keyboardRow.add("Информация");
             keyboardRows.add(keyboardRow);
         }
         if (update.getMessage().getChatId()==595667050){
@@ -39,6 +51,38 @@ public class ReplyKeyboardMarkupService {
             keyboardRow.add("Панель Админа");
             keyboardRows.add(keyboardRow);
         }
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+    public ReplyKeyboardMarkup getBackButtonToEnterLk() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow keyboardRow = new KeyboardRow();
+        keyboardRow.add("Изменить выбор");
+        keyboardRows.add(keyboardRow);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+
+    public ReplyKeyboardMarkup getAdminReplyButton() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow keyboardRow = new KeyboardRow();
+        keyboardRow.add("Назад");
+        keyboardRows.add(keyboardRow);
+        keyboardRow = new KeyboardRow();
+        keyboardRow.add("Массовая рассылка");
+        keyboardRows.add(keyboardRow);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
+    }
+
+    public ReplyKeyboardMarkup getBackButton() {
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow keyboardRow = new KeyboardRow();
+        keyboardRow.add("Назад");
+        keyboardRows.add(keyboardRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
