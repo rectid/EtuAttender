@@ -6,6 +6,7 @@ import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.EtuApiService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
 @Component
+@Slf4j
 public class EnterWithoutSave {
      private Update update;
     private User user;
@@ -62,6 +64,7 @@ public class EnterWithoutSave {
                 SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Добро пожаловать!");
                 message.setReplyMarkup(replyKeyboardMarkupService.get(update,user));
                 etuAttenderBot.handle(message);
+                log.info(user.getId()+"|"+user.getNick()+" registered without saving password");
                 return UserState.IN_LESSONS_MENU;
             case "lk_error":
                 message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неверные данные от ЛК");

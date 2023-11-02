@@ -41,6 +41,7 @@ public class UserService {
     }
 
     public void updateUserClosestLesson(User user, List<Lesson> lessons){
+        user = getUser(user.getId()).get();
         for (Lesson lesson :
                 lessons) {
             if (lesson.getStartDate().isAfter(LocalDateTime.now())){

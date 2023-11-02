@@ -6,6 +6,7 @@ import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.EtuApiService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,6 +14,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
 @Component
+@Slf4j
 public class EnterWithSave {
     private Update update;
     private User user;
@@ -72,14 +74,17 @@ public class EnterWithSave {
                 SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
                 message.setReplyMarkup(replyKeyboardMarkupService.get(update, user));
                 etuAttenderBot.handle(message);
+                log.info(user.getId()+"|"+user.getNick()+" registered with saving password");
                 return UserState.IN_LESSONS_MENU;
             case "lk_error":
                 text = "Неверные данные от ЛК";
                 if (reauth){
                     text = "Смена токена не выполнена, проверьте данные ЛК!";
+                    user.setCookie("expired");
                 }
                 message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
-                return message;
+                etuAttenderBot.handle(message);
+                return UserState.IN_MAIN_MENU;
             case "server_error":
                 message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ошибка сервера, попробуйте еще раз");
                 return message;

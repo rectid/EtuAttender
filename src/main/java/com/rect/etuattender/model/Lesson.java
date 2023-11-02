@@ -36,8 +36,6 @@ public class Lesson {
     @Column
     private boolean selfReported = false;
 
-
-
     @Column
     private String shortTitle;
 

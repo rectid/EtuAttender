@@ -172,6 +172,7 @@ public class EtuApiService {
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId,Lesson::setLessonId);
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
         modelMapper.typeMap(LessonDto.class,Lesson.class).addMapping(src -> {
             if (src.getTeachers() != null) {
                 return src.getTeachers().get(0).getSurname();

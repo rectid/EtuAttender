@@ -53,9 +53,17 @@ public class InlineKeyboardMarkupService {
 
             Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(lesson.getLessonId())).findFirst();
             if (userLesson.isPresent()) {
-                button.setText(newDateString + " - " + lesson.getShortTitle() + " - " + lesson.getRoom() + " ✔");
+                String room = "?";
+                if (lesson.getRoom()!=null){
+                    room = lesson.getRoom();
+                }
+                button.setText(newDateString + " - " + lesson.getShortTitle() + " - каб " + room + " ✔");
             } else {
-                button.setText(newDateString + " - " + lesson.getShortTitle() + " - " + lesson.getRoom() + " ❌");
+                String room = "?";
+                if (lesson.getRoom()!=null){
+                    room = lesson.getRoom();
+                }
+                button.setText(newDateString + " - " + lesson.getShortTitle() + " - каб " + room + " ❌");
             }
 
             button.setCallbackData(lesson.getLessonId());

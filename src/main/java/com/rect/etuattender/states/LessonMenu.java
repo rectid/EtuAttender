@@ -49,7 +49,6 @@ public class LessonMenu {
             if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
             if (user.getLogin() != null) {
                 user.setState(UserState.ENTERING_WITH_SAVE);
-                userService.saveUser(user);
                 Update tempUpdate = new Update();
                 Message message = new Message();
                 message.setText(user.getLogin() + ":" + user.getPassword());
@@ -63,9 +62,9 @@ public class LessonMenu {
                 etuAttenderBot.onUpdateReceived(tempUpdate);
             } else return UserState.IN_MAIN_MENU;
         }}
+        this.checkService = new CheckService(userService, etuApiService, etuAttenderBot);
 
         this.lessons = etuApiService.getLessons(user);
-        this.checkService = new CheckService(userService, etuApiService, etuAttenderBot);
         String command = update.getMessage().getText();
 
 
@@ -75,6 +74,7 @@ public class LessonMenu {
                 case "AUTO_CHECK":
                     return changeAutoCheckStatus(data);
                 case "REAUTH":
+                    userService.saveUser(user);
                     return inLessonMenu();
                 default:
                     return changeLessonStatus(data);
@@ -182,7 +182,7 @@ public class LessonMenu {
     }
 
     private BotApiMethod inLessonMenu() {
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня:");
+        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня, выберите, на чем вас отметить:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getAuthButtons(lessons, user));
         return message;
     }

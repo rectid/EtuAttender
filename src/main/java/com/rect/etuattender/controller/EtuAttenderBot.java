@@ -14,6 +14,11 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class EtuAttenderBot extends TelegramLongPollingBot {
@@ -28,6 +33,8 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
     private final LessonMenu lessonMenu;
     private final AdminPanel adminPanel;
     private final MassMessage massMessage;
+    private ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+
 
     public EtuAttenderBot(BotConfig botConfig, UserService userService, MainMenu mainMenu, EnterLk enterLk, EnterWithoutSave enterWithoutSave, EnterWithSave enterWithSave, LessonMenu lessonMenu, AdminPanel adminPanel, MassMessage massMessage) {
         super(botConfig.getToken());
@@ -46,8 +53,7 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         this.update = update;
-        new Thread(() -> {
-
+        executor.execute(()->{
             if (update.hasMessage() && update.getMessage().hasText()) {
                 Optional<User> optionalUser = userService.getUser(update.getMessage().getChatId());
                 if (optionalUser.isPresent()) {
@@ -68,7 +74,6 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
                         case IN_ADMIN_PANEL -> handle(adminPanel.select(update, user, this));
                         case SENDING_MASS_MESSAGE -> handle(massMessage.select(update, user, this));
                         case IN_BAN -> handle(new SendMessage(String.valueOf(user.getId()), "Вы заблокированы!"));
-
                     }
 
                 } else {
@@ -78,7 +83,8 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
                 update.setMessage(update.getCallbackQuery().getMessage());
                 onUpdateReceived(update);
             }
-        }).start();
+
+        });
     }
 
     public void signUp() {
@@ -90,7 +96,9 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
             user.setRole("USER");
         }
         user.setState(UserState.IN_MAIN_MENU);
-        user.setNick(update.getMessage().getFrom().getUserName());
+        if (update.getMessage().getFrom().getUserName()!=null){
+        user.setNick(update.getMessage().getFrom().getUserName());}
+        else {user.setNick(update.getMessage().getFrom().getId().toString());};
         userService.saveUser(user);
         onUpdateReceived(update);
     }
@@ -115,6 +123,10 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
         userService.saveUser(user);
         onUpdateReceived(update);
     }
+
+    public ThreadPoolExecutor waitForCompletion() {
+    return executor;
+}
 
     @Override
     public String getBotUsername() {

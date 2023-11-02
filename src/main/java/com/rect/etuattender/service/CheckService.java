@@ -13,8 +13,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.*;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
+import java.time.chrono.ChronoLocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -26,6 +26,7 @@ public class CheckService {
     private final UserService userService;
     private final EtuApiService etuApiService;
     private final EtuAttenderBot etuAttenderBot;
+    private final Object monitor = new Object();
 
 
     @Autowired
@@ -76,6 +77,10 @@ public class CheckService {
                                 setData("REAUTH");
                             }});
                             etuAttenderBot.onUpdateReceived(update);
+                            while (etuAttenderBot.waitForCompletion().getActiveCount()!=0){
+                                Thread.sleep(100);
+                            }
+
                         } else {
 
                             user.setState(UserState.IN_MAIN_MENU);
@@ -91,7 +96,17 @@ public class CheckService {
                             etuAttenderBot.onUpdateReceived(update);
                             continue;
                         }
-                    }} else continue;
+                    }
+                    } else continue;
+
+                    if (LocalTime.now().isBefore(LocalTime.of(2,5))&&LocalTime.now().isAfter(LocalTime.of(2,1))&& LocalDate.now().getDayOfWeek()==DayOfWeek.MONDAY){
+                        if (user.isAutoCheck()){
+                            user.setLessons(etuApiService.getLessons(user));
+                        } else {
+                            user.setLessons(new ArrayList<>());
+                        }
+                            userService.saveUser(user);
+                    }
 
                     checkExecutor.execute(() -> {
                         for (Lesson lesson :
@@ -120,6 +135,9 @@ public class CheckService {
                 }
                 delay = nextLessonDate - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 10;
                 long delayAuth = nextAuthExpireDate - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 10;
+                if (LocalTime.now().isBefore(LocalTime.of(3,0))&& LocalDate.now().getDayOfWeek()==DayOfWeek.MONDAY){
+                    delay = LocalTime.of(2,2).toEpochSecond(LocalDate.now(),ZoneOffset.UTC) - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+                }
                 if (delay <= 0) {
                     delay = 3600;
                 }
