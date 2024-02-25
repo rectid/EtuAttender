@@ -34,6 +34,11 @@ public class MainMenu {
         this.update=update;
         this.user=user;
         String command = update.getMessage().getText();
+
+        if (command.equals("Расписание") && user.getCookie()==null){
+            return error();
+        }
+
         if (user.getCookieLifetime()!=null) {
             if (command.equals("Расписание") && user.getCookieLifetime().isBefore(LocalDateTime.now())) {
                 return authExpired();

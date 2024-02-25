@@ -4,7 +4,6 @@ import com.rect.etuattender.controller.EtuAttenderBot;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
-import com.rect.etuattender.states.LessonMenu;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.*;
 
 import java.time.*;
-import java.time.chrono.ChronoLocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -44,7 +42,7 @@ public class CheckService {
 
     public void executeScheduledTask() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        ExecutorService checkExecutor = Executors.newSingleThreadScheduledExecutor();
+        ThreadPoolExecutor checkExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         List<User> users = new ArrayList<>();
         Callable<Void> task = new Callable<>() {
             @SneakyThrows
@@ -76,11 +74,11 @@ public class CheckService {
                             update.setCallbackQuery(new CallbackQuery() {{
                                 setData("REAUTH");
                             }});
-                            etuAttenderBot.onUpdateReceived(update);
-                            while (etuAttenderBot.waitForCompletion().getActiveCount()!=0){
+                            Runnable job = etuAttenderBot.createJob();
+                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
+                            while (!future.isDone()){
                                 Thread.sleep(100);
                             }
-
                         } else {
 
                             user.setState(UserState.IN_MAIN_MENU);
@@ -93,13 +91,36 @@ public class CheckService {
                             Chat chat = new Chat();
                             chat.setId(user.getId());
                             update.getMessage().setChat(chat);
-                            etuAttenderBot.onUpdateReceived(update);
+                            Runnable job = etuAttenderBot.createJob();
+                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
+                            while (!future.isDone()){
+                                Thread.sleep(100);
+                            }
                             continue;
                         }
+                    User tempUser = userService.getUser(user.getId()).get();
+                    if (tempUser.getCookieLifetime().equals(user.getCookieLifetime())){
+                        user.setState(UserState.IN_MAIN_MENU);
+                            user.setCookie("expired");
+                            userService.saveUser(user);
+                            Update update = new Update();
+                            Message message = new Message();
+                            message.setText("Расписание");
+                            update.setMessage(message);
+                            Chat chat = new Chat();
+                            chat.setId(user.getId());
+                            update.getMessage().setChat(chat);
+                            Runnable job = etuAttenderBot.createJob();
+                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
+                            while (!future.isDone()){
+                                Thread.sleep(100);
+                            }
+                            continue;
+                    }
                     }
                     } else continue;
-
-                    if (LocalTime.now().isBefore(LocalTime.of(2,5))&&LocalTime.now().isAfter(LocalTime.of(2,1))&& LocalDate.now().getDayOfWeek()==DayOfWeek.MONDAY){
+                    user = userService.getUser(user.getId()).get();
+                    if (LocalTime.now().isBefore(LocalTime.of(2,50))&&LocalTime.now().isAfter(LocalTime.of(1,1))&& LocalDate.now().getDayOfWeek()==DayOfWeek.TUESDAY){
                         if (user.isAutoCheck()){
                             user.setLessons(etuApiService.getLessons(user));
                         } else {
@@ -108,12 +129,13 @@ public class CheckService {
                             userService.saveUser(user);
                     }
 
+                    User finalUser = user;
                     checkExecutor.execute(() -> {
                         for (Lesson lesson :
-                                user.getLessons()) {
+                                finalUser.getLessons()) {
                             if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())) {
                                 if (!lesson.isSelfReported()) {
-                                        boolean succes = etuApiService.check(user, lesson.getLessonId());
+                                        boolean succes = etuApiService.check(finalUser, lesson.getLessonId());
                                         if (succes) {
                                             lesson.setSelfReported(true);
                                         }
@@ -149,6 +171,7 @@ public class CheckService {
                 return null;
             }
         };
+
         scheduler.schedule(task, 1, TimeUnit.SECONDS);
     }
 }
