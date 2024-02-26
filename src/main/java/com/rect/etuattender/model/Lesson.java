@@ -37,6 +37,14 @@ public class Lesson {
     private boolean selfReported = false;
 
     @Column
+    private boolean teacherReported = false;
+
+    @Column
+    private boolean groupLeaderReported = false;
+
+    @Column
+    private boolean isDistant = false;
+    @Column
     private String shortTitle;
 
     @Column

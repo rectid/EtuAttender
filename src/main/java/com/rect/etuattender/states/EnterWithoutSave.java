@@ -16,8 +16,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 @Component
 @Slf4j
 public class EnterWithoutSave {
-     private Update update;
-    private User user;
     private EtuAttenderBot etuAttenderBot;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final EtuApiService etuApiService;
@@ -31,26 +29,24 @@ public class EnterWithoutSave {
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot){
         this.etuAttenderBot = etuAttenderBot;
-        this.update=update;
-        this.user=user;
         String command = update.getMessage().getText();
         if (update.hasCallbackQuery()){
             command =update.getCallbackQuery().getData();
         }
 
         switch (command){
-            case "NOT_SAVE": return inEnterWithoutSave();
+            case "NOT_SAVE": return inEnterWithoutSave(update,user);
             case "Панель Админа": return UserState.IN_ADMIN_PANEL;
             case "Изменить выбор":
             case "/start":
                 return UserState.ENTERING_LK;
         }
 
-        return auth();
+        return auth(update,user);
     }
 
 
-    private Object auth() {
+    private Object auth(Update update, User user) {
         String[] lk = update.getMessage().getText().split(":");
         if (lk.length!=2){
             SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неправильный формат!");
@@ -63,7 +59,7 @@ public class EnterWithoutSave {
             case "ok":
                 SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Добро пожаловать!");
                 message.setReplyMarkup(replyKeyboardMarkupService.get(update,user));
-                etuAttenderBot.handle(message);
+                etuAttenderBot.handle(message,update);
                 log.info(user.getId()+"|"+user.getNick()+" registered without saving password");
                 return UserState.IN_LESSONS_MENU;
             case "lk_error":
@@ -76,7 +72,7 @@ public class EnterWithoutSave {
         return null;
     }
 
-    private BotApiMethod inEnterWithoutSave() {
+    private BotApiMethod inEnterWithoutSave(Update update, User user) {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getBackButtonToEnterLk();
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите данные вашего ЛК ЛЭТИ в формате логин:пароль");
         message.setReplyMarkup(replyKeyboardMarkup);

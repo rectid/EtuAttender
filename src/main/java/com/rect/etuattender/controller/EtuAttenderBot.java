@@ -6,23 +6,22 @@ import com.rect.etuattender.model.User;
 import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.UserService;
 import com.rect.etuattender.states.*;
-import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 
 @Component
+@Slf4j
 public class EtuAttenderBot extends TelegramLongPollingBot {
-
-    private Update update;
     private final EtuAttenderBot etuAttenderBot = this;
     private final BotConfig botConfig;
     private final UserService userService;
@@ -33,8 +32,7 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
     private final LessonMenu lessonMenu;
     private final AdminPanel adminPanel;
     private final MassMessage massMessage;
-    public final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-
+    public final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 
     public EtuAttenderBot(BotConfig botConfig, UserService userService, MainMenu mainMenu, EnterLk enterLk, EnterWithoutSave enterWithoutSave, EnterWithSave enterWithSave, LessonMenu lessonMenu, AdminPanel adminPanel, MassMessage massMessage) {
@@ -50,57 +48,48 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
         this.massMessage = massMessage;
     }
 
-    public Runnable createJob() {
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                if (update.hasMessage() && update.getMessage().hasText()) {
-                    Optional<User> optionalUser = userService.getUser(update.getMessage().getChatId());
-                    if (optionalUser.isPresent()) {
-                        User user = optionalUser.get();
-                        if (update.getMessage().getText().equals("/start")) {
-                            user.setState(UserState.IN_MAIN_MENU);
-                            userService.saveUser(user);
-                        }
-
-
-                        UserState userState = user.getState();
-                        switch (userState) {
-                            case IN_MAIN_MENU -> handle(mainMenu.select(update, user));
-                            case ENTERING_LK -> handle(enterLk.select(update, user, etuAttenderBot));
-                            case ENTERING_WITH_SAVE -> handle(enterWithSave.select(update, user, etuAttenderBot));
-                            case ENTERING_WITHOUT_SAVE -> handle(enterWithoutSave.select(update, user, etuAttenderBot));
-                            case IN_LESSONS_MENU -> handle(lessonMenu.select(update, user, etuAttenderBot));
-                            case IN_ADMIN_PANEL -> handle(adminPanel.select(update, user, etuAttenderBot));
-                            case SENDING_MASS_MESSAGE -> handle(massMessage.select(update, user, etuAttenderBot));
-                            case IN_BAN -> handle(new SendMessage(String.valueOf(user.getId()), "Вы заблокированы!"));
-                        }
-
-                    } else {
-                        signUp();
-                    }
-                } else if (update.hasCallbackQuery()) {
-                    update.setMessage(update.getCallbackQuery().getMessage());
-                    onUpdateReceived(update);
-                }
-            }
-        };
-
-        return runnable;
-    }
-
     @Override
     public void onUpdateReceived(Update update) {
-        this.update = update;
-        executor.execute(createJob());
+        executor.execute(() -> {
+            if (update.hasMessage() && update.getMessage().hasText()) {
+                Optional<User> optionalUser = userService.getUser(update.getMessage().getChatId());
+                if (optionalUser.isPresent()) {
+                    User user = optionalUser.get();
+                    if (update.getMessage().getText().equals("/start")) {
+                        user.setState(UserState.IN_MAIN_MENU);
+                        userService.saveUser(user);
+                    }
+
+
+                    UserState userState = user.getState();
+                    switch (userState) {
+                        case IN_MAIN_MENU -> handle(mainMenu.select(update, user), update);
+                        case ENTERING_LK -> handle(enterLk.select(update, user, etuAttenderBot), update);
+                        case ENTERING_WITH_SAVE -> handle(enterWithSave.select(update, user, etuAttenderBot), update);
+                        case ENTERING_WITHOUT_SAVE ->
+                                handle(enterWithoutSave.select(update, user, etuAttenderBot), update);
+                        case IN_LESSONS_MENU -> handle(lessonMenu.select(update, user, etuAttenderBot), update);
+                        case IN_ADMIN_PANEL -> handle(adminPanel.select(update, user, etuAttenderBot), update);
+                        case SENDING_MASS_MESSAGE -> handle(massMessage.select(update, user, etuAttenderBot), update);
+                        case IN_BAN ->
+                                handle(new SendMessage(String.valueOf(user.getId()), "Вы заблокированы!"), update);
+                    }
+
+                } else {
+                    signUp(update);
+                }
+            } else if (update.hasCallbackQuery()) {
+                update.setMessage(update.getCallbackQuery().getMessage());
+                onUpdateReceived(update);
+            }
+        });
     }
 
     public Future<?> onUpdateReceived(Update update, Runnable job) {
-        this.update = update;
         return executor.submit(job);
     }
 
-    public void signUp() {
+    public void signUp(Update update) {
         User user = new User();
         user.setId(update.getMessage().getChatId());
         if (user.getId() == botConfig.getOwner()) {
@@ -109,28 +98,32 @@ public class EtuAttenderBot extends TelegramLongPollingBot {
             user.setRole("USER");
         }
         user.setState(UserState.IN_MAIN_MENU);
-        if (update.getMessage().getFrom().getUserName()!=null){
-        user.setNick(update.getMessage().getFrom().getUserName());}
-        else {user.setNick(update.getMessage().getFrom().getId().toString());};
+        if (update.getMessage().getFrom().getUserName() != null) {
+            user.setNick(update.getMessage().getFrom().getUserName());
+        } else {
+            user.setNick(update.getMessage().getFrom().getId().toString());
+        }
+        ;
         userService.saveUser(user);
         onUpdateReceived(update);
     }
 
-    public void handle(Object object) {
+    public void handle(Object object, Update update) {
         if (object instanceof BotApiMethod) {
             action((BotApiMethod) object);
         }
         if (object instanceof UserState) {
-            action((UserState) object);
+            action((UserState) object, update);
         }
     }
 
-    @SneakyThrows
     public void action(BotApiMethod botApiMethod) {
-        execute(botApiMethod);
+        try {
+            execute(botApiMethod);
+        } catch (TelegramApiException ignored) {}
     }
 
-    public void action(UserState userState) {
+    public void action(UserState userState, Update update) {
         User user = userService.getUser(update.getMessage().getChatId()).get();
         user.setState(userState);
         userService.saveUser(user);

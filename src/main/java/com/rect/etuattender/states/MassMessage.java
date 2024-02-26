@@ -15,8 +15,6 @@ import java.util.List;
 
 @Component
 public class MassMessage {
-        private Update update;
-    private User user;
     private EtuAttenderBot etuAttenderBot;
     private final UserService userService;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
@@ -30,33 +28,31 @@ public class MassMessage {
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
         this.etuAttenderBot = etuAttenderBot;
-        this.update = update;
-        this.user = user;
         String command = update.getMessage().getText();
 
         switch (command) {
             case "Массовая рассылка":
-                return inMessageToUsers();
+                return inMessageToUsers(update, user);
             case "Назад":
             case "/start":
                 return UserState.IN_ADMIN_PANEL;
         }
 
-        return send(command);
+        return send(command, update, user);
     }
 
-    private UserState send(String text) {
+    private UserState send(String text, Update update, User user) {
         List<User> userList = userService.getAll();
         for (User tempUser:
              userList) {
             SendMessage message = new SendMessage(String.valueOf(tempUser.getId()), text);
-            etuAttenderBot.handle(message);
+            etuAttenderBot.handle(message, update);
         }
         update.getMessage().setText("Панель Админа");
         return UserState.IN_ADMIN_PANEL;
     }
 
-    private BotApiMethod inMessageToUsers() {
+    private BotApiMethod inMessageToUsers(Update update, User user) {
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите сообщение для всех пользователей");
         message.setReplyMarkup(replyKeyboardMarkupService.getBackButton());
         return message;

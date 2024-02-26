@@ -23,8 +23,6 @@ public class AdminPanel {
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final UserService userService;
-    private User user;
-    private Update update;
     private EtuAttenderBot etuAttenderBot;
 
     @Autowired
@@ -36,8 +34,6 @@ public class AdminPanel {
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
         this.etuAttenderBot=etuAttenderBot;
-        this.user=user;
-        this.update=update;
         String command = update.getMessage().getText();
         switch (command) {
             case "Панель Админа":
@@ -75,7 +71,7 @@ public class AdminPanel {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getAdminReplyButton();
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "С возвращением!");
         message.setReplyMarkup(replyKeyboardMarkup);
-        etuAttenderBot.handle(message);
+        etuAttenderBot.handle(message, update);
         message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите ник необходимого пользователя");
         message.setReplyMarkup(inlineKeyboardMarkupService.getUsersButtons(update,userService.getAll(),userService.getUser(update.getMessage().getChatId()).get().getPage()));
         User user = userService.getUser(update.getMessage().getChatId()).get();

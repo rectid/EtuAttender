@@ -24,7 +24,6 @@ public class CheckService {
     private final UserService userService;
     private final EtuApiService etuApiService;
     private final EtuAttenderBot etuAttenderBot;
-    private final Object monitor = new Object();
 
 
     @Autowired
@@ -42,16 +41,20 @@ public class CheckService {
 
     public void executeScheduledTask() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        ThreadPoolExecutor checkExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ExecutorService checkExecutor = Executors.newVirtualThreadPerTaskExecutor();
         List<User> users = new ArrayList<>();
         Callable<Void> task = new Callable<>() {
-            @SneakyThrows
+
             public Void call() {
                 log.info(LocalDateTime.now().toString());
                 long delay = 0;
                 Callable<List<User>> c = userService::getAll;
                 users.clear();
-                users.addAll(c.call());
+                try {
+                    users.addAll(c.call());
+                } catch (Exception e) {
+                    log.error("error in checkerservice");
+                }
                 for (User user :
                         users) {
 
@@ -74,11 +77,7 @@ public class CheckService {
                             update.setCallbackQuery(new CallbackQuery() {{
                                 setData("REAUTH");
                             }});
-                            Runnable job = etuAttenderBot.createJob();
-                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
-                            while (!future.isDone()){
-                                Thread.sleep(100);
-                            }
+                                etuAttenderBot.onUpdateReceived(update);
                         } else {
 
                             user.setState(UserState.IN_MAIN_MENU);
@@ -91,32 +90,9 @@ public class CheckService {
                             Chat chat = new Chat();
                             chat.setId(user.getId());
                             update.getMessage().setChat(chat);
-                            Runnable job = etuAttenderBot.createJob();
-                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
-                            while (!future.isDone()){
-                                Thread.sleep(100);
-                            }
+                                etuAttenderBot.onUpdateReceived(update);
                             continue;
                         }
-                    User tempUser = userService.getUser(user.getId()).get();
-                    if (tempUser.getCookieLifetime().equals(user.getCookieLifetime())){
-                        user.setState(UserState.IN_MAIN_MENU);
-                            user.setCookie("expired");
-                            userService.saveUser(user);
-                            Update update = new Update();
-                            Message message = new Message();
-                            message.setText("Расписание");
-                            update.setMessage(message);
-                            Chat chat = new Chat();
-                            chat.setId(user.getId());
-                            update.getMessage().setChat(chat);
-                            Runnable job = etuAttenderBot.createJob();
-                            Future<?> future=  etuAttenderBot.onUpdateReceived(update, job);
-                            while (!future.isDone()){
-                                Thread.sleep(100);
-                            }
-                            continue;
-                    }
                     }
                     } else continue;
                     user = userService.getUser(user.getId()).get();
@@ -135,7 +111,7 @@ public class CheckService {
                                 finalUser.getLessons()) {
                             if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())) {
                                 if (!lesson.isSelfReported()) {
-                                        boolean succes = etuApiService.check(finalUser, lesson.getLessonId());
+                                        boolean succes = etuApiService.check(finalUser, lesson);
                                         if (succes) {
                                             lesson.setSelfReported(true);
                                         }
@@ -166,7 +142,7 @@ public class CheckService {
                 if (delayAuth < delay && delayAuth > 0) {
                     delay = delayAuth;
                 }
-                log.info(LocalDateTime.ofEpochSecond(nextLessonDate, 0, ZoneOffset.UTC) + " " + delay);
+                log.info(LocalDateTime.now().plusSeconds(delay) + " " + delay);
                 scheduler.schedule(this, delay, TimeUnit.SECONDS);
                 return null;
             }

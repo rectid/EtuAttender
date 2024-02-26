@@ -16,15 +16,13 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.*;
 
 @Component
 public class LessonMenu {
-    private Update update;
-    private User user;
     private List<Lesson> lessons = new ArrayList<>();
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final EtuApiService etuApiService;
@@ -43,25 +41,6 @@ public class LessonMenu {
 
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
-        this.update = update;
-        this.user = user;
-        if (user.getCookieLifetime()!=null) {
-            if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
-            if (user.getLogin() != null) {
-                user.setState(UserState.ENTERING_WITH_SAVE);
-                Update tempUpdate = new Update();
-                Message message = new Message();
-                message.setText(user.getLogin() + ":" + user.getPassword());
-                tempUpdate.setMessage(message);
-                Chat chat = new Chat();
-                chat.setId(user.getId());
-                tempUpdate.getMessage().setChat(chat);
-                tempUpdate.setCallbackQuery(new CallbackQuery() {{
-                    setData("REAUTH");
-                }});
-                etuAttenderBot.onUpdateReceived(tempUpdate);
-            } else return UserState.IN_MAIN_MENU;
-        }}
         this.checkService = new CheckService(userService, etuApiService, etuAttenderBot);
 
         this.lessons = etuApiService.getLessons(user);
@@ -72,12 +51,12 @@ public class LessonMenu {
             String data = update.getCallbackQuery().getData();
             switch (data) {
                 case "AUTO_CHECK":
-                    return changeAutoCheckStatus(data);
+                    return changeAutoCheckStatus(data, update, user);
                 case "REAUTH":
                     userService.saveUser(user);
-                    return inLessonMenu();
+                    return inLessonMenu(update, user);
                 default:
-                    return changeLessonStatus(data);
+                    return changeLessonStatus(data, update, user);
             }
         }
 
@@ -85,51 +64,69 @@ public class LessonMenu {
             case "Панель Админа":
                 return UserState.IN_ADMIN_PANEL;
             case "Расписание", "Назад":
-                return inLessonMenu();
+                return inLessonMenu(update, user);
             case "Изменить данные ЛК":
                 return UserState.ENTERING_LK;
-            case "Полное расписание": return getFullSchedule();
+            case "Полное расписание": return getFullSchedule(update, user);
             case "Информация":
-                return getInfo();
+                return getInfo(update, user);
             case "/start":
                 return UserState.IN_MAIN_MENU;
         }
 
         checkService.initChecking();
-        return inLessonMenu();
+        return inLessonMenu(update, user);
     }
-    private BotApiMethod getFullSchedule() {
+    private BotApiMethod getFullSchedule(Update update, User user) {
         List<Lesson> lessonList = etuApiService.getLessons(user);
         String text = "Ошибка!";
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Ваше расписание на неделю: ");
+        stringBuilder.append("Ваше расписание на неделю: "+"\n(Отмечены: вы | староста | преподаватель)");
+        LocalDate date = LocalDate.of(2024, Month.FEBRUARY,12);
+        DayOfWeek day = DayOfWeek.SUNDAY;
         for (Lesson lesson : lessonList) {
+            if (lesson.getStartDate().getDayOfWeek() != day){
+                day = lesson.getStartDate().getDayOfWeek();
+                stringBuilder.append("\n\n===" + day.getDisplayName(TextStyle.FULL, Locale.of("ru")).toUpperCase()+ "===");
+            }
             String cab = "?";
             if (lesson.getRoom() != null) {
                 cab = lesson.getRoom();
+            }
+            if (lesson.isDistant()){
+                cab = "Дистанционно";
             }
             String teacher = "?";
             if (!lesson.getTeacher().equals("[]")) {
                 teacher = StringUtils.substringBetween(lesson.getTeacher(),"name=",",");
             }
-            String selfReport = "❌";
 
+            String selfReport = "❌";
             if (lesson.isSelfReported()){
                 selfReport = "✔";
+            }
+
+            String teacherReported = "❌";
+            if (lesson.isTeacherReported()){
+                teacherReported = "✔";
+            }
+
+            String leaderReported = "❌";
+            if (lesson.isGroupLeaderReported()){
+                leaderReported = "✔";
             }
             stringBuilder.append("\n\nПара: " + lesson.getShortTitle() +
                     "\nКабинет: " + cab +
                     "\nПреподаватель: " + teacher +
-                    "\nНачало: " + lesson.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM HH:mm")) +
-                    "\nКонец: " + lesson.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM HH:mm"))+
-                    "\nВы были отмечены: "+ selfReport);
+                    "\nВремя: " + lesson.getStartDate().format(DateTimeFormatter.ofPattern("HH:mm")) + " - " + lesson.getEndDate().format(DateTimeFormatter.ofPattern("HH:mm"))+
+                    "\nОтмечены: "+ selfReport + " | " + leaderReported + " | " + teacherReported);
         }
         text = stringBuilder.toString();
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
         return message;
     }
 
-    private BotApiMethod getInfo() {
+    private BotApiMethod getInfo(Update update, User user) {
         String auto = "❌";
         if (user.getLogin() != null) {
             auto = "✔";
@@ -144,7 +141,7 @@ public class LessonMenu {
         return message;
     }
 
-    private BotApiMethod changeAutoCheckStatus(String data) {
+    private BotApiMethod changeAutoCheckStatus(String data, Update update, User user) {
         if (user.isAutoCheck()) {
             user.getLessons().clear();
             user.setAutoCheck(false);
@@ -163,7 +160,7 @@ public class LessonMenu {
     }
 
 
-    private BotApiMethod changeLessonStatus(String data) {
+    private BotApiMethod changeLessonStatus(String data, Update update, User user) {
         Lesson listLesson = lessons.stream().filter(lesson1 -> lesson1.getLessonId().equals(data)).findFirst().get();
         Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(listLesson.getLessonId())).findFirst();
         if (userLesson.isPresent()) {
@@ -181,7 +178,7 @@ public class LessonMenu {
         return message;
     }
 
-    private BotApiMethod inLessonMenu() {
+    private BotApiMethod inLessonMenu(Update update, User user) {
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваше расписание на сегодня, выберите, на чем вас отметить:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getAuthButtons(lessons, user));
         return message;

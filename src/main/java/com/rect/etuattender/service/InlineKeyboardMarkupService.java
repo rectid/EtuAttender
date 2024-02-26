@@ -74,7 +74,6 @@ public class InlineKeyboardMarkupService {
         var button = new InlineKeyboardButton();
         if (user.isAutoCheck()) {
             button.setText("Все пары ✔");
-            ;
         } else {
             button.setText("Все пары ❌");
         }
