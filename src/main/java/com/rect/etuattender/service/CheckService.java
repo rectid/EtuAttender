@@ -19,6 +19,7 @@ import java.util.concurrent.*;
 
 @Component
 @Slf4j
+@Deprecated
 public class CheckService {
 
     private final UserService userService;
