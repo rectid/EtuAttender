@@ -1,5 +1,6 @@
 package com.rect.etuattender.model;
 
+@Deprecated
 public enum UserState {
     IN_MAIN_MENU {},
     ENTERING_LK {},

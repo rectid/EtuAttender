@@ -14,71 +14,79 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 
 import java.time.LocalDateTime;
 
+@Deprecated //DEPRECATED SINCE REWORK 13.04
 @Component
 public class MainMenu {
 
-    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
-    private final UserService userService;
-
-    @Autowired
-    public MainMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, UserService userService) {
-        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
-        this.userService = userService;
-    }
-
-
-    public Object select(Update update, User user){
-        String command = update.getMessage().getText();
-
-        if (command.equals("Расписание") && user.getCookie()==null){
-            return error(update, user);
-        }
-
-        if (user.getCookieLifetime()!=null) {
-            if (command.equals("Расписание") && user.getCookieLifetime().isBefore(LocalDateTime.now())) {
-                return authExpired(update, user);
-            }
-        }
-        switch (command){
-            case "Ввести данные ЛК","Изменить данные лк": return UserState.ENTERING_LK;
-            case "Панель Админа": return UserState.IN_ADMIN_PANEL;
-            case "Информация": return getInfo(update, user);
-            case "Расписание": return UserState.IN_LESSONS_MENU;
-            case "Назад":
-            case "/start":
-                return inMainMenu(update, user);
-        }
-        if (user.getCookieLifetime()!=null){
-        if (user.getCookieLifetime().isBefore(LocalDateTime.now())){
-            return authExpired(update, user);
-        }}
-        return error(update, user);
-    }
-
-    private BotApiMethod getInfo(Update update, User user){
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),
-                "\nТех поддержка: @rected" +
-                        "\n\nДанный бот предназначен для автоматический отметки на парах и просмотра расписания");
-        return message;
-    }
-
-     @SneakyThrows
-     public BotApiMethod inMainMenu(Update update, User user) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
-        message.setReplyMarkup(replyKeyboardMarkup);
-        return message;
-    }
-
-    public BotApiMethod authExpired(Update update, User user){
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!");
-        message.setReplyMarkup(replyKeyboardMarkup);
-        return message;
-    }
-
-    public BotApiMethod error(Update update, User user){
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),"Неизвестная команда. Введите /start");
-        return message;
-    }
+//    private Update update;
+//    private User user;
+//
+//    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
+//    private final UserService userService;
+//
+//    @Autowired
+//    public MainMenu(ReplyKeyboardMarkupService replyKeyboardMarkupService, UserService userService) {
+//        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
+//        this.userService = userService;
+//    }
+//
+//
+//    public Object select(Update update, User user){
+//        this.update=update;
+//        this.user=user;
+//        String command = update.getMessage().getText();
+//
+//        if (command.equals("Расписание") && user.getCookie()==null){
+//            return error();
+//        }
+//
+//        if(user.getCookieLifetime()==null && command.equals("Расписание")){
+//            command = "/start";
+//        }
+//        if (command.equals("Расписание") && user.getCookieLifetime().isBefore(LocalDateTime.now())) {
+//            return authExpired();
+//        }
+//
+//        switch (command){
+//            case "Ввести данные ЛК","Изменить данные лк": return UserState.ENTERING_LK;
+//            case "Панель Админа": return UserState.IN_ADMIN_PANEL;
+//            case "Информация": return getInfo();
+//            case "Расписание": return UserState.IN_LESSONS_MENU;
+//            case "Назад":
+//            case "/start":
+//                return inMainMenu();
+//        }
+//        if (user.getCookieLifetime()!=null){
+//        if (user.getCookieLifetime().isBefore(LocalDateTime.now())){
+//            return authExpired();
+//        }}
+//        return error();
+//    }
+//
+//    private BotApiMethod getInfo(){
+//        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),
+//                "\nТех поддержка: @rected" +
+//                        "\n\nДанный бот предназначен для автоматический отметки на парах и просмотра расписания");
+//        return message;
+//    }
+//
+//     @SneakyThrows
+//     public BotApiMethod inMainMenu() {
+//        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
+//        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
+//        message.setReplyMarkup(replyKeyboardMarkup);
+//        return message;
+//    }
+//
+//    public BotApiMethod authExpired(){
+//        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
+//        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!");
+//        message.setReplyMarkup(replyKeyboardMarkup);
+//        return message;
+//    }
+//
+//    public BotApiMethod error(){
+//        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),"Неизвестная команда. Введите /start");
+//        return message;
+//    }
 }

@@ -18,7 +18,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import java.time.LocalDateTime;
 
 @Component
+@Deprecated
 public class EnterLk {
+
+    private Update update;
+    private User user;
+
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final UserService userService;
@@ -37,6 +42,8 @@ public class EnterLk {
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
         this.etuAttenderBot = etuAttenderBot;
+        this.update = update;
+        this.user = user;
         String command = update.getMessage().getText();
 
         if (update.hasCallbackQuery()) {
@@ -47,21 +54,21 @@ public class EnterLk {
                     message.setChatId(update.getMessage().getChatId());
                     message.setMessageId(update.getMessage().getMessageId());
                     message.setText("Выбрана аутентификация с сохранением данных");
-                    etuAttenderBot.handle(message, update);
+                    etuAttenderBot.handle(message);
                 return UserState.ENTERING_WITH_SAVE;
                 case "NOT_SAVE":
                     message = new EditMessageText();
                     message.setChatId(update.getMessage().getChatId());
                     message.setMessageId(update.getMessage().getMessageId());
                     message.setText("Выбрана аутентификация без сохранением данных");
-                    etuAttenderBot.handle(message, update);
+                    etuAttenderBot.handle(message);
                     return UserState.ENTERING_WITHOUT_SAVE;
             }
         }
 
         switch (command) {
             case "Ввести данные ЛК", "Изменить выбор","Изменить данные ЛК":
-                return inEnterLk(update,user);
+                return inEnterLk();
             case "Панель Админа":
                 return UserState.IN_ADMIN_PANEL;
             case "Назад":
@@ -70,22 +77,22 @@ public class EnterLk {
                     ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update,user);
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Меню расписания");
         message.setReplyMarkup(replyKeyboardMarkup);
-        etuAttenderBot.handle(message, update);
+        etuAttenderBot.handle(message);
                     return UserState.IN_LESSONS_MENU;
                 } else return UserState.IN_MAIN_MENU;}else return UserState.IN_MAIN_MENU;
             case "/start":
                 return UserState.IN_MAIN_MENU;
         }
 
-        return error(update,user);
+        return error();
     }
 
-    public BotApiMethod error(Update update, User user) {
+    public BotApiMethod error() {
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неизвестная команда. Выберите вариант аутентификации");
         return message;
     }
 
-    private Object auth(boolean save, Update update, User user) {
+    private Object auth(boolean save) {
         String[] lk = update.getMessage().getText().split(":");
         if (lk.length != 2) {
             SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неправильный формат!");
@@ -108,14 +115,15 @@ public class EnterLk {
         return null;
     }
 
-    private BotApiMethod inEnterLk(Update update, User user) {
+
+    private BotApiMethod inEnterLk() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getBackButton();
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Аутентификация с сохранением данных. \nПлюсы: удобный способ использования бота, однако ради этого я сохраняю ваш логин:пароль в базе данных, что позволяет мне автоматически обновлять токен доступа к ИС Посещаемость от ЛЭТИ." +
                 "\nМинусы: относительно небезопасно хранить свои логин:пароль в недоступном напрямую для вас месте." +
                 "\n\nАутентификация без сохранения данных. \nПлюсы: более безопасный способ использования бота, ведь в этом случае я не сохраняю ваши логин:пароль, только токен, который действует 6 дней " +
                 "и может быть использован исключительно в сервисе ИС Посещаемость от ЛЭТИ. \nМинусы: срок действия, бот попросит пройти аутентификацию заново через 6 дней; при обновлении ИС Посещаемость аутентификация в боте слетает.");
         message.setReplyMarkup(replyKeyboardMarkup);
-        etuAttenderBot.handle(message, update);
+        etuAttenderBot.handle(message);
         message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Выберите вариант аутентификации:");
         message.setReplyMarkup(inlineKeyboardMarkupService.getAuthButtons());
         return message;

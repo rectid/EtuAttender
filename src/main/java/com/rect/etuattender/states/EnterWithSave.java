@@ -15,7 +15,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 
 @Component
 @Slf4j
-public class    EnterWithSave {
+@Deprecated
+public class EnterWithSave {
+    private Update update;
+    private User user;
     private EtuAttenderBot etuAttenderBot;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
     private final EtuApiService etuApiService;
@@ -29,17 +32,19 @@ public class    EnterWithSave {
 
     public Object select(Update update, User user, EtuAttenderBot etuAttenderBot) {
         this.etuAttenderBot = etuAttenderBot;
+        this.update = update;
+        this.user = user;
         String command = update.getMessage().getText();
         if (update.hasCallbackQuery()) {
             if (update.getCallbackQuery().getData().equals("REAUTH")){
-                return auth(true, update, user);
+                return auth(true);
             }
             command = update.getCallbackQuery().getData();
         }
 
         switch (command) {
             case "SAVE":
-                return inEnterWithSave(update, user);
+                return inEnterWithSave();
             case "Панель Админа":
                 return UserState.IN_ADMIN_PANEL;
             case "Изменить выбор":
@@ -47,11 +52,11 @@ public class    EnterWithSave {
                 return UserState.ENTERING_LK;
         }
 
-        return auth(false, update, user);
+        return auth(false);
     }
 
 
-    private Object auth(boolean reauth, Update update, User user) {
+    private Object auth(boolean reauth) {
         String[] lk = update.getMessage().getText().split(":");
         if (lk.length != 2) {
             SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неправильный формат!");
@@ -69,7 +74,7 @@ public class    EnterWithSave {
                 }
                 SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
                 message.setReplyMarkup(replyKeyboardMarkupService.get(update, user));
-                etuAttenderBot.handle(message, update);
+                etuAttenderBot.handle(message);
                 log.info(user.getId()+"|"+user.getNick()+" registered with saving password");
                 return UserState.IN_LESSONS_MENU;
             case "lk_error":
@@ -79,7 +84,7 @@ public class    EnterWithSave {
                     user.setCookie("expired");
                 }
                 message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
-                etuAttenderBot.handle(message, update);
+                etuAttenderBot.handle(message);
                 return UserState.IN_MAIN_MENU;
             case "server_error":
                 message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ошибка сервера, попробуйте еще раз");
@@ -88,7 +93,7 @@ public class    EnterWithSave {
         return null;
     }
 
-    private BotApiMethod inEnterWithSave(Update update, User user) {
+    private BotApiMethod inEnterWithSave() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getBackButtonToEnterLk();
         SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Введите данные вашего ЛК ЛЭТИ в формате логин:пароль");
         message.setReplyMarkup(replyKeyboardMarkup);

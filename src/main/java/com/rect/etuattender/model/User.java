@@ -2,14 +2,9 @@ package com.rect.etuattender.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Cascade;
-import org.modelmapper.ModelMapper;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -32,7 +27,7 @@ public class User {
 
     @Column
     @Enumerated(EnumType.STRING)
-    private UserState state;
+    private State state;
 
     @Column
     private String cookie;
@@ -41,7 +36,7 @@ public class User {
     private LocalDateTime cookieLifetime;
 
     @Column
-    private boolean autoCheck=false;
+    private boolean autoCheck = false;
 
     @Column
     private String closestLesson;
@@ -53,7 +48,7 @@ public class User {
     private LocalDateTime endOfClosestLesson;
 
     @Column
-    private int page=0;
+    private int page = 0;
 
     @Column
     private String lastSearch = " ";
@@ -68,4 +63,14 @@ public class User {
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 
+    public enum State {
+        IN_MAIN_MENU,
+        ENTERING_LK,
+        ENTERING_WITH_SAVE,
+        ENTERING_WITHOUT_SAVE,
+        IN_LESSONS_MENU,
+        IN_ADMIN_PANEL,
+        SENDING_MASS_MESSAGE,
+        IN_BAN;
+    }
 }

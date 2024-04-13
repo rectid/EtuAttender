@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+@Deprecated
 @Component
 @Slf4j
 public class EtuAttenderBot extends TelegramLongPollingBot {

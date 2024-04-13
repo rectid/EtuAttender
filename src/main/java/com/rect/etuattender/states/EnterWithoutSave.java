@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 
 @Component
 @Slf4j
+@Deprecated
 public class EnterWithoutSave {
     private EtuAttenderBot etuAttenderBot;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;

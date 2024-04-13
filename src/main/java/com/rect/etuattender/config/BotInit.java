@@ -1,5 +1,6 @@
 package com.rect.etuattender.config;
 
+import com.rect.etuattender.controller.Bot;
 import com.rect.etuattender.controller.EtuAttenderBot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +15,12 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 @Component
 public class BotInit {
 
+    private final Bot bot;
 
     @Autowired
-    EtuAttenderBot bot;
+    public BotInit(Bot bot) {
+        this.bot = bot;
+    }
 
     @EventListener({ContextRefreshedEvent.class})
     public void init() throws TelegramApiException {
