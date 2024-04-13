@@ -1,21 +1,14 @@
 package com.rect.etuattender.controller;
 
 import com.rect.etuattender.config.BotConfig;
+import com.rect.etuattender.handler.EnterLkHandler;
 import com.rect.etuattender.handler.MainMenuHandler;
 import com.rect.etuattender.model.User;
-import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.UserService;
-import com.rect.etuattender.states.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,30 +20,34 @@ public class Bot extends TelegramLongPollingBot {
     private final BotConfig botConfig;
     private final UserService userService;
     private final MainMenuHandler mainMenuHandler;
+    private final EnterLkHandler enterLkHandler;
 
-    public Bot(BotConfig botConfig, UserService userService, MainMenuHandler mainMenuHandler) {
+    public Bot(BotConfig botConfig, UserService userService, MainMenuHandler mainMenuHandler, EnterLkHandler enterLkHandler) {
         super(botConfig.getToken());
         this.botConfig = botConfig;
         this.userService = userService;
         this.mainMenuHandler = mainMenuHandler;
+        this.enterLkHandler = enterLkHandler;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
         executor.submit(() -> {
-            if ((update.hasMessage() && update.getMessage().hasText()) ||
-                    (update.hasCallbackQuery() &&
-                            (update.getCallbackQuery().getData()!=null && update.getCallbackQuery().getMessage()!=null))) {
-
+            if (update.hasMessage()) {
                 User user = userService.getUser(update.getMessage().getChatId())
                         .orElseGet(() -> mainMenuHandler.signUp(update));
 
-                switch (user.getState()) {
-                            case IN_MAIN_MENU -> mainMenuHandler.handle(update, user);
-                        }
+                routeHandling(update, user, user.getState());
             }
-
         });
+    }
+
+    public void routeHandling(Update update, User user, User.State state) {
+        if (user.getState() != state) user = userService.changeUserState(user, state);
+        switch (state) {
+            case IN_MAIN_MENU -> mainMenuHandler.handle(update, user);
+            case ENTERING_LK -> enterLkHandler.handle(update, user);
+        }
     }
 
 

@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 
 @Component
 @Slf4j
+@Deprecated
 public class EnterWithSave {
     private Update update;
     private User user;

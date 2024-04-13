@@ -18,6 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import java.time.LocalDateTime;
 
 @Component
+@Deprecated
 public class EnterLk {
 
     private Update update;
@@ -113,6 +114,7 @@ public class EnterLk {
         }
         return null;
     }
+
 
     private BotApiMethod inEnterLk() {
         ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getBackButton();
