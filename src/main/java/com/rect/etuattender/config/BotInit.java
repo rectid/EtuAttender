@@ -1,7 +1,6 @@
 package com.rect.etuattender.config;
 
 import com.rect.etuattender.controller.Bot;
-import com.rect.etuattender.controller.EtuAttenderBot;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;

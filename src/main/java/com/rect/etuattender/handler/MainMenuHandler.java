@@ -4,6 +4,7 @@ import com.rect.etuattender.controller.Bot;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
+import com.rect.etuattender.util.BotStrings;
 import com.rect.etuattender.util.BotUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
 import static com.rect.etuattender.model.User.State.*;
 
@@ -60,7 +60,7 @@ public class MainMenuHandler {
 
     public User signUp(Update update) {
         User user = new User();
-        user.setId(update.getMessage().getChatId());
+        user.setId(BotUtils.getUserId(update));
         if (user.getId() == bot.getBotOwner()) user.setRole("ADMIN");
         else user.setRole("USER");
         user.setState(IN_MAIN_MENU);
@@ -75,32 +75,36 @@ public class MainMenuHandler {
 
     @SneakyThrows
     public void inMainMenu(Update update, User user) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Вы в главном меню. Если кнопки не появились - введите /start");
-        message.setReplyMarkup(replyKeyboardMarkup);
-        bot.execute(message);
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .text("Вы в главном меню. Если кнопки не появились - введите /start")
+                .build());
     }
 
     @SneakyThrows
     public void error(Update update) {
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неизвестная команда. Введите /start");
-        bot.execute(message);
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .text("Неизвестная команда. Введите /start")
+                .build());
     }
 
     @SneakyThrows
     public void authExpired(Update update, User user) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.get(update, user);
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!");
-        message.setReplyMarkup(replyKeyboardMarkup);
-        bot.execute(message);
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
+                .build());
     }
 
     @SneakyThrows
     private void getInfo(Update update) {
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()),
-                "\nТех поддержка: @refrct" +
-                        "\n\nДанный бот предназначен для автоматический отметки на парах и просмотра расписания");
-        bot.execute(message);
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .text(BotStrings.getMainMenuInfo())
+                .build());
     }
 
 }

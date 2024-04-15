@@ -2,11 +2,11 @@ package com.rect.etuattender.handler;
 
 import com.rect.etuattender.controller.Bot;
 import com.rect.etuattender.model.User;
-import com.rect.etuattender.model.UserState;
 import com.rect.etuattender.service.EtuApiService;
 import com.rect.etuattender.service.InlineKeyboardMarkupService;
 import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
+import com.rect.etuattender.util.BotStrings;
 import com.rect.etuattender.util.BotUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +15,6 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-
-import java.time.LocalDateTime;
 
 import static com.rect.etuattender.model.User.State.*;
 
@@ -51,7 +48,7 @@ public class EnterLkHandler {
                 enterOptionChosen(update, user, false);
                 break;
             case "Ввести данные ЛК", "Изменить выбор", "Изменить данные ЛК":
-                inEnterLk(update, user);
+                inEnterLk(update);
                 break;
             case "Назад": {
                 if (BotUtils.checkCookies(user)) bot.routeHandling(update, user, IN_LESSONS_MENU);
@@ -73,11 +70,12 @@ public class EnterLkHandler {
     @SneakyThrows
     private void enterOptionChosen(Update update, User user, boolean isSave) {
         EditMessageText message = EditMessageText.builder()
-                .chatId(update.getMessage().getChatId())
-                .messageId(update.getMessage().getMessageId())
-                .text("Выбрана аутентификация без сохранения данных")
+                .chatId(BotUtils.getUserId(update))
+                .messageId(BotUtils.getMessageId(update))
+                .text("Выбрана аутентификация без сохранения данных.\n\nВведите логин и пароль в формате логин:пароль")
                 .build();
-        if (isSave) message.setText("Выбрана аутентификация с сохранением данных");
+        if (isSave)
+            message.setText("Выбрана аутентификация с сохранением данных.\n\nВведите логин и пароль в формате логин:пароль");
         bot.execute(message);
         if (isSave) bot.routeHandling(update, user, ENTERING_WITH_SAVE);
         else bot.routeHandling(update, user, ENTERING_WITHOUT_SAVE);
@@ -85,52 +83,60 @@ public class EnterLkHandler {
 
     @SneakyThrows
     public void error(Update update) {
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неизвестная команда. Выберите вариант аутентификации");
-        bot.execute(message);
+        bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).text("Неизвестная команда. Выберите вариант аутентификации").build());
     }
 
     @SneakyThrows
-    private void auth(Update update, User user, boolean save) {
+    private void auth(Update update, User user, boolean isSave) {
         String[] lk = update.getMessage().getText().split(":");
         if (lk.length != 2) {
-            SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Неправильный формат!");
-            bot.execute(message);
+            bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).text("Неправильный формат!").build());
             return;
         }
-
-        user.setLogin(lk[0]);
-        user.setPassword(lk[1]);
-        userService.saveUser(user);
+        if (isSave) {
+            user.setLogin(lk[0]);
+            user.setPassword(lk[1]);
+            userService.saveUser(user);
+        }
+        bot.execute(SendMessage.builder()
+                        .chatId(BotUtils.getUserId(update))
+                        .text("Регистрирую вас...")
+                        .build());
         switch (etuApiService.auth(user, lk)) {
             case "ok":
-                String text = "Добро пожаловать!";
-                SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
-                message.setReplyMarkup(replyKeyboardMarkupService.get(update, user));
-                bot.execute(message);
+                bot.execute(SendMessage.builder()
+                        .chatId(BotUtils.getUserId(update))
+                        .text("Успешно. Добро пожаловать!")
+                        .replyMarkup(replyKeyboardMarkupService.get(update, user))
+                        .build());
+                bot.execute(SendMessage.builder()
+                        .chatId(BotUtils.getUserId(update))
+                        .text("Ваше расписание на сегодня, выберите, на чем вас отметить:")
+                        .replyMarkup(inlineKeyboardMarkupService.getLessonsButtons(etuApiService.getLessons(user), user))
+                        .build());
                 log.info(user.getId() + "|" + user.getNick() + " registered in lk!");
-                bot.routeHandling(update, user, IN_LESSONS_MENU);
+                break;
             case "lk_error":
-                text = "Неверные данные от ЛК";
-                message = new SendMessage(String.valueOf(update.getMessage().getChatId()), text);
-                bot.execute(message);
+                bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).text("Неверные данные от ЛК").build());
+                break;
             case "server_error":
-                message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Ошибка сервера, попробуйте еще раз");
-                bot.execute(message);
+                bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).text("Ошибка сервера, попробуйте еще раз").build());
+                break;
         }
     }
 
     @SneakyThrows
-    private void inEnterLk(Update update, User user) {
-        ReplyKeyboardMarkup replyKeyboardMarkup = replyKeyboardMarkupService.getBackButton();
-        SendMessage message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Аутентификация с сохранением данных. \nПлюсы: удобный способ использования бота, однако ради этого я сохраняю ваш логин:пароль в базе данных, что позволяет мне автоматически обновлять токен доступа к ИС Посещаемость от ЛЭТИ." +
-                "\nМинусы: относительно небезопасно хранить свои логин:пароль в недоступном напрямую для вас месте." +
-                "\n\nАутентификация без сохранения данных. \nПлюсы: более безопасный способ использования бота, ведь в этом случае я не сохраняю ваши логин:пароль, только токен, который действует 6 дней " +
-                "и может быть использован исключительно в сервисе ИС Посещаемость от ЛЭТИ. \nМинусы: срок действия, бот попросит пройти аутентификацию заново через 6 дней; при обновлении ИС Посещаемость аутентификация в боте слетает.");
-        message.setReplyMarkup(replyKeyboardMarkup);
-        bot.execute(message);
-        message = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Выберите вариант аутентификации:");
-        message.setReplyMarkup(inlineKeyboardMarkupService.getAuthButtons());
-        bot.execute(message);
+    private void inEnterLk(Update update) {
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(replyKeyboardMarkupService.getBackButton())
+                .text(BotStrings.getEnterLkInfo())
+                .build());
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(inlineKeyboardMarkupService.getAuthButtons())
+                .text("Выберите вариант аутентификации:")
+                .build());
     }
 
 }

@@ -14,7 +14,8 @@ public class LessonService {
         this.lessonRepository = lessonRepository;
     }
 
-    public List<Lesson> getAll(){
-        return lessonRepository.findAll();
+    public void checkLesson(Lesson lesson) {
+        lesson.setSelfReported(true);
+        lessonRepository.save(lesson);
     }
 }

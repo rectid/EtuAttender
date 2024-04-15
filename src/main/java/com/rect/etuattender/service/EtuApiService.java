@@ -1,13 +1,14 @@
 package com.rect.etuattender.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.rect.etuattender.dto.lesson.LessonDto;
-import com.rect.etuattender.dto.lesson.LessonTeacherDto;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RegExUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -37,95 +38,153 @@ public class EtuApiService {
         this.modelMapper = modelMapper;
     }
 
-    public String auth(User user, String[] lk) {
-        try {
+    private String extractCookie(HttpResponse<String> response) {
+        List<String> loginPostCookies = response.headers().allValues("Set-Cookie");
+        String xsrfToken = loginPostCookies.get(0).split(";")[0];
+        String lkSessionToken = loginPostCookies.get(1).split(";")[0];
+        return xsrfToken + "; " + lkSessionToken;
+    }
 
-            HttpClient client = HttpClient.newBuilder()
-                    .followRedirects(HttpClient.Redirect.NORMAL)
-                    .build();
+    private String extractHtmlElement(HttpResponse<String> response, String value) {
+        Document document = Jsoup.parse(response.body());
+        Elements elements = document.getElementsByAttributeValue("name", value);
+        return elements.attr("value");
+    }
+
+    public String auth(User user, String[] lk) {
+        try (HttpClient client = HttpClient.newBuilder().build()){
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?response_type=code&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&client_id=29"))
+                    .uri(URI.create("https://lk.etu.ru/login"))
                     .GET()
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            List<String> loginPostCookies = response.headers().allValues("Set-Cookie");
-            String xsrfToken = loginPostCookies.get(0).split(";")[0];
-            String lkSessionToken = loginPostCookies.get(1).split(";")[0];
-            String allLoginCookie = xsrfToken + "; " + lkSessionToken;
-
-
-            Document document = Jsoup.parse(response.body());
-            Elements elements = document.getElementsByAttributeValue("name", "_token");
-            String token = elements.attr("value");
-
-
-            client = HttpClient.newBuilder().build();
-
-            String loginRequestFields = "_token=" + token + "&email=" + lk[0] + "&password=" + lk[1];
+            String loginRequestFields = "_token=" + extractHtmlElement(response, "_token") + "&email=" + lk[0] + "&password=" + lk[1];
 
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/login"))
                     .setHeader("Content-Type", "application/x-www-form-urlencoded")
-                    .setHeader("Cookie", allLoginCookie)
+                    .setHeader("Cookie", extractCookie(response))
                     .POST(HttpRequest.BodyPublishers.ofString(loginRequestFields))
                     .build();
 
-
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            loginPostCookies = response.headers().allValues("Set-Cookie");
-            xsrfToken = loginPostCookies.get(0).split(";")[0];
-            lkSessionToken = loginPostCookies.get(1).split(";")[0];
-            allLoginCookie = xsrfToken + "; " + lkSessionToken;
-
+            if (response.statusCode() == 419) {
+                return "lk_error";
+            }
 
             request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?client_id=29&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&response_type=code"))
-                    .setHeader("Cookie", allLoginCookie)
+                    .uri(URI.create(response.headers().map().get("location").getFirst()))
+                    .setHeader("Cookie", extractCookie(response))
                     .GET()
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-            loginPostCookies = response.headers().allValues("Set-Cookie");
-            xsrfToken = loginPostCookies.get(0).split(";")[0];
-            lkSessionToken = loginPostCookies.get(1).split(";")[0];
-            allLoginCookie = xsrfToken + "; " + lkSessionToken;
+            String trueLoginLkCookie = extractCookie(response);
+            String reportToForLoginLk = RegExUtils.removeAll(response.headers().map().get("location").getFirst(), "https:\\/\\/id.etu.ru\\/");
 
-            document = Jsoup.parse(response.body());
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.id.etu.ru/initialize"))
+                    .GET()
+                    .build();
 
-            elements = document.getElementsByAttributeValue("name", "_token");
-            token = elements.attr("value");
-            elements = document.getElementsByAttributeValue("name", "auth_token");
-            String authToken = elements.attr("value");
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HashMap<String, String> newApiToken = objectMapper.readValue(response.body(), new TypeReference<>() {
+            });
+            HashMap<String, Object> newApiRequest = new HashMap<>() {{
+                put("email", lk[0]);
+                put("password", lk[1]);
+                put("remember", false);
+                put("_token", newApiToken.get("token"));
+            }};
 
-            String oauthRequestFields = "_token=" + token + "&state=&client_id=29" + "&auth_token=" + authToken;
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.id.etu.ru/portal/api/account"))
+                    .setHeader("Cookie", extractCookie(response))
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.id.etu.ru/auth/login"))
+                    .setHeader("Content-Type", "application/json")
+                    .setHeader("Cookie", extractCookie(response))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(newApiRequest)))
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.id.etu.ru/portal/oauth/" + reportToForLoginLk))
+                    .setHeader("Accept", "application/json")
+                    .setHeader("Cookie", extractCookie(response))
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            HashMap<String, String> newApiToOldRedirect = objectMapper.readValue(response.body(), new TypeReference<>() {
+            });
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(newApiToOldRedirect.get("redirect")))
+                    .setHeader("Cookie", trueLoginLkCookie)
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(response.headers().map().get("location").getFirst()))
+                    .setHeader("Cookie", extractCookie(response))
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(response.headers().map().get("location").getFirst()))
+                    .setHeader("Cookie", extractCookie(response))
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?client_id=29&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&response_type=code"))
+                    .setHeader("Cookie", extractCookie(response))
+                    .GET()
+                    .build();
+
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            String oauthRequestFields = "_token="
+                    + extractHtmlElement(response, "_token")
+                    + "&state=&client_id=29" + "&auth_token="
+                    + extractHtmlElement(response, "auth_token");
+
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/oauth/authorize"))
-                    .setHeader("Cookie", allLoginCookie)
+                    .setHeader("Cookie", extractCookie(response))
                     .setHeader("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString(oauthRequestFields))
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode()==419) {
-                return "lk_error";
-            }
-
-            String cookieRedirect = response.headers().firstValue("Location").get();
 
             request = HttpRequest.newBuilder()
-                    .uri(URI.create(cookieRedirect))
+                    .uri(URI.create(response.headers().firstValue("location").get()))
                     .GET()
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             String fullCookie = response.headers().firstValue("Set-Cookie").get();
-
             String[] dividedCookie = fullCookie.split(";");
             String cookie = dividedCookie[0];
             String expires = dividedCookie[2].split("=")[1];
@@ -143,6 +202,9 @@ public class EtuApiService {
 
             user.setCookie(cookie);
             user.setCookieLifetime(localDateTime);
+            user.setAutoCheck(true);
+            user.setState(User.State.IN_LESSONS_MENU);
+            user.setLessons(getLessons(user));
             userService.saveUser(user);
 
             return "ok";
@@ -155,50 +217,49 @@ public class EtuApiService {
     }
 
     public List<Lesson> getLessons(User user) {
-        HttpClient client = HttpClient.newBuilder().build();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in"))
                 .setHeader("Cookie", user.getCookie())
                 .GET()
                 .build();
         List<LessonDto> lessonDtos;
-        try {
+        try (HttpClient client = HttpClient.newBuilder().build()){
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             lessonDtos = Arrays.stream(objectMapper.readValue(response.body(), LessonDto[].class)).toList();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(),Lesson::setShortTitle);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId,Lesson::setLessonId);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
-        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user,Lesson::setUser);
-        modelMapper.typeMap(LessonDto.class,Lesson.class).addMapping(src -> {
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(), Lesson::setShortTitle);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(LessonDto::getId, Lesson::setLessonId);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user, Lesson::setUser);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> user, Lesson::setUser);
+        modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> {
             if (src.getTeachers() != null) {
-                return src.getTeachers().get(0).getSurname();
+                return src.getTeachers().getFirst().getSurname();
             }
             return null;
-        },Lesson::setTeacher);
+        }, Lesson::setTeacher);
 
 
-        List<Lesson> lessons = modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {}.getType());
-        return lessons;
+        return modelMapper.map(lessonDtos, new TypeToken<List<Lesson>>() {
+        }.getType());
     }
 
 
-    public boolean check(User user, Lesson lesson){
-        HttpClient client = HttpClient.newBuilder().build();
-        HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/"+lesson.getLessonId()))
-                    .setHeader("Cookie", user.getCookie())
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .build();
+    public boolean check(User user, Lesson lesson) {
 
-        try {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/" + lesson.getLessonId()))
+                .setHeader("Cookie", user.getCookie())
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        try (HttpClient client = HttpClient.newBuilder().build()){
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                log.info("Checked "+user.getNick()+", lesson "+lesson.getShortTitle() + ", response: "+response.body());
-                return true;
+            log.info("Checked " + user.getNick() + ", lesson " + lesson.getShortTitle() + ", response: " + response.body());
+            return true;
         } catch (IOException | InterruptedException e) {
-            log.error("Problem with check "+user.getNick()+", lesson "+lesson.getShortTitle());
+            log.error("Problem with check " + user.getNick() + ", lesson " + lesson.getShortTitle());
             return false;
         }
 

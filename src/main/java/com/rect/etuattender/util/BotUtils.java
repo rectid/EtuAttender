@@ -20,12 +20,25 @@ public class BotUtils {
     }
 
     public boolean checkCookies(User user){
-        if (user.getCookie().isEmpty()){
+        if (user.getCookie() == null){
             return false;
-        } else if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
-            return false;
+        } else return !user.getCookieLifetime().isBefore(LocalDateTime.now());
+    }
+
+    public Long getUserId(Update update){
+        if (update.hasMessage()){
+            return update.getMessage().getFrom().getId();
+        } else {
+            return update.getCallbackQuery().getFrom().getId();
         }
-        return true;
+    }
+
+    public Integer getMessageId(Update update){
+        if (update.hasMessage()){
+            return update.getMessage().getMessageId();
+        } else {
+            return update.getCallbackQuery().getMessage().getMessageId();
+        }
     }
 
 }
