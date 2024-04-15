@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 import static com.rect.etuattender.model.User.State.*;
+import static com.rect.etuattender.controller.Bot.executor;
 
 @Component
 @Slf4j
@@ -168,7 +169,7 @@ public class LessonMenuHandler {
         } else {
             user.setLessons(lessons);
             user.setAutoCheck(true);
-            user.getLessons().forEach(lesson -> etuApiService.check(user,lesson));
+            executor.execute(()->user.getLessons().forEach(lesson -> etuApiService.check(user,lesson)));
             log.info(user.getId() + " turns on autocheck");
         }
         userService.saveUser(user);
@@ -185,7 +186,8 @@ public class LessonMenuHandler {
             log.info(user.getId() + " removes lesson " + userLesson.get().getLessonId());
         } else {
             user.getLessons().add(etuApiLesson);
-            etuApiService.check(user, etuApiLesson);
+            executor.execute(()->etuApiService.check(user, etuApiLesson));
+            log.info(user.getId() + " adds lesson " + etuApiLesson.getLessonId());
         }
         userService.saveUser(user);
         bot.execute(EditMessageReplyMarkup.builder().chatId(BotUtils.getUserId(update)).messageId(BotUtils.getMessageId(update)).replyMarkup(inlineKeyboardMarkupService.editLessonButtons(update, user)).build());
