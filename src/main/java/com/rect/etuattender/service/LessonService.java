@@ -4,7 +4,7 @@ import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.repository.LessonRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Optional;
 
 @Service
 public class LessonService {
@@ -12,6 +12,10 @@ public class LessonService {
 
     public LessonService(LessonRepository lessonRepository) {
         this.lessonRepository = lessonRepository;
+    }
+
+    public Optional<Lesson> getLesson(String lessonId){
+        return lessonRepository.findById(Integer.parseInt(lessonId));
     }
 
     public void checkLesson(Lesson lesson) {

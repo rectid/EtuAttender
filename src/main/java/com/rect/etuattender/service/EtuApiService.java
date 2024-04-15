@@ -31,11 +31,13 @@ import java.util.*;
 public class EtuApiService {
     private final UserService userService;
     private final ModelMapper modelMapper;
+    private final LessonService lessonService;
     private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).registerModule(new JavaTimeModule());
 
-    public EtuApiService(UserService userService, ModelMapper modelMapper) {
+    public EtuApiService(UserService userService, ModelMapper modelMapper, LessonService lessonService) {
         this.userService = userService;
         this.modelMapper = modelMapper;
+        this.lessonService = lessonService;
     }
 
     private String extractCookie(HttpResponse<String> response) {
@@ -246,7 +248,7 @@ public class EtuApiService {
     }
 
 
-    public boolean check(User user, Lesson lesson) {
+    public void check(User user, Lesson lesson) {
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://digital.etu.ru/attendance/api/schedule/check-in/" + lesson.getLessonId()))
@@ -257,10 +259,9 @@ public class EtuApiService {
         try (HttpClient client = HttpClient.newBuilder().build()){
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             log.info("Checked " + user.getNick() + ", lesson " + lesson.getShortTitle() + ", response: " + response.body());
-            return true;
+            lessonService.checkLesson(lesson);
         } catch (IOException | InterruptedException e) {
             log.error("Problem with check " + user.getNick() + ", lesson " + lesson.getShortTitle());
-            return false;
         }
 
     }

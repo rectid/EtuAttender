@@ -97,10 +97,7 @@ public class CheckService {
                                 user.getLessons()) {
                             if ((lesson.getStartDate().isBefore(LocalDateTime.now()) && lesson.getEndDate().isAfter(LocalDateTime.now())) || lesson.getStartDate().isEqual(LocalDateTime.now())) {
                                 if (!lesson.isSelfReported()) {
-                                    boolean success = etuApiService.check(user, lesson);
-                                    if (success) {
-                                        lessonService.checkLesson(lesson);
-                                    }
+                                    etuApiService.check(user, lesson);
                                 }
                             }
                         }

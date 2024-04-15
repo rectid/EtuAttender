@@ -3,10 +3,7 @@ package com.rect.etuattender.handler;
 import com.rect.etuattender.controller.Bot;
 import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
-import com.rect.etuattender.service.EtuApiService;
-import com.rect.etuattender.service.InlineKeyboardMarkupService;
-import com.rect.etuattender.service.ReplyKeyboardMarkupService;
-import com.rect.etuattender.service.UserService;
+import com.rect.etuattender.service.*;
 import com.rect.etuattender.util.BotStrings;
 import com.rect.etuattender.util.BotUtils;
 import lombok.SneakyThrows;
@@ -19,6 +16,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageRe
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.DayOfWeek;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
@@ -33,14 +31,16 @@ import static com.rect.etuattender.controller.Bot.executor;
 public class LessonMenuHandler {
 
     private final UserService userService;
+    private final LessonService lessonService;
     private final Bot bot;
     private final EtuApiService etuApiService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
 
     @Lazy
-    public LessonMenuHandler(UserService userService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
+    public LessonMenuHandler(UserService userService, LessonService lessonService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
         this.userService = userService;
+        this.lessonService = lessonService;
         this.bot = bot;
         this.etuApiService = etuApiService;
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
@@ -169,7 +169,11 @@ public class LessonMenuHandler {
         } else {
             user.setLessons(lessons);
             user.setAutoCheck(true);
-            executor.execute(()->user.getLessons().forEach(lesson -> etuApiService.check(user,lesson)));
+            executor.execute(()->{
+                userService.updateUserClosestLesson(user);
+                Optional<Lesson> lesson = lessons.stream().filter(lesson1 -> lesson1.getStartDate().isAfter(LocalDateTime.now()) && lesson1.getEndDate().isBefore(LocalDateTime.now())).findFirst();
+                lesson.ifPresent(value -> etuApiService.check(user, value));
+            });
             log.info(user.getId() + " turns on autocheck");
         }
         userService.saveUser(user);
@@ -178,7 +182,7 @@ public class LessonMenuHandler {
 
     @SneakyThrows
     private void changeLessonStatus(Update update, User user, List<Lesson> lessons) {
-        Lesson etuApiLesson = lessons.stream().filter(lesson1 -> lesson1.getLessonId().equals(update.getCallbackQuery().getData())).findFirst().get();
+        Lesson etuApiLesson = lessons.stream().filter(lesson1 -> lesson1.getLessonId().equals(update.getCallbackQuery().getData())).findFirst().orElseThrow();
         Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(etuApiLesson.getLessonId())).findFirst();
         if (userLesson.isPresent()) {
             user.getLessons().remove(userLesson.get());
@@ -186,7 +190,10 @@ public class LessonMenuHandler {
             log.info(user.getId() + " removes lesson " + userLesson.get().getLessonId());
         } else {
             user.getLessons().add(etuApiLesson);
-            executor.execute(()->etuApiService.check(user, etuApiLesson));
+            executor.execute(()->{
+                userService.updateUserClosestLesson(user);
+                if(etuApiLesson.getStartDate().isAfter(LocalDateTime.now()) && etuApiLesson.getEndDate().isBefore(LocalDateTime.now())) etuApiService.check(user, etuApiLesson);
+            });
             log.info(user.getId() + " adds lesson " + etuApiLesson.getLessonId());
         }
         userService.saveUser(user);
