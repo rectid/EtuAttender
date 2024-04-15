@@ -58,7 +58,9 @@ public class MainMenuHandler {
         }
     }
 
+    @SneakyThrows
     public User signUp(Update update) {
+        if (update.hasCallbackQuery()) update.setMessage(update.getCallbackQuery().getMessage());
         User user = new User();
         user.setId(BotUtils.getUserId(update));
         if (user.getId() == bot.getBotOwner()) user.setRole("ADMIN");

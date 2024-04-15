@@ -5,6 +5,7 @@ import com.rect.etuattender.model.Lesson;
 import com.rect.etuattender.model.User;
 import com.rect.etuattender.service.EtuApiService;
 import com.rect.etuattender.service.InlineKeyboardMarkupService;
+import com.rect.etuattender.service.ReplyKeyboardMarkupService;
 import com.rect.etuattender.service.UserService;
 import com.rect.etuattender.util.BotStrings;
 import com.rect.etuattender.util.BotUtils;
@@ -24,8 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-import static com.rect.etuattender.model.User.State.ENTERING_LK;
-import static com.rect.etuattender.model.User.State.IN_ADMIN_PANEL;
+import static com.rect.etuattender.model.User.State.*;
 
 @Component
 @Slf4j
@@ -35,17 +35,20 @@ public class LessonMenuHandler {
     private final Bot bot;
     private final EtuApiService etuApiService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
+    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
 
     @Lazy
-    public LessonMenuHandler(UserService userService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService) {
+    public LessonMenuHandler(UserService userService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
         this.userService = userService;
         this.bot = bot;
         this.etuApiService = etuApiService;
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
+        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
     }
 
     public void handle(Update update, User user) {
         String command = BotUtils.getCommand(update).orElse("UNKNOWN");
+        if (!BotUtils.checkCookies(user)) authExpired(update, user);
         List<Lesson> lessons = etuApiService.getLessons(user);
 
         switch (command) {
@@ -73,6 +76,16 @@ public class LessonMenuHandler {
             default:
                 changeLessonStatus(update, user, lessons);
         }
+    }
+    @SneakyThrows
+    public void authExpired(Update update, User user) {
+        user.setState(IN_MAIN_MENU);
+        userService.saveUser(user);
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
+                .build());
     }
 
     @SneakyThrows
