@@ -155,6 +155,7 @@ public class LessonMenuHandler {
         } else {
             user.setLessons(lessons);
             user.setAutoCheck(true);
+            user.getLessons().forEach(lesson -> etuApiService.check(user,lesson));
             log.info(user.getId() + " turns on autocheck");
         }
         userService.saveUser(user);
@@ -163,14 +164,15 @@ public class LessonMenuHandler {
 
     @SneakyThrows
     private void changeLessonStatus(Update update, User user, List<Lesson> lessons) {
-        Lesson listLesson = lessons.stream().filter(lesson1 -> lesson1.getLessonId().equals(update.getCallbackQuery().getData())).findFirst().get();
-        Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(listLesson.getLessonId())).findFirst();
+        Lesson etuApiLesson = lessons.stream().filter(lesson1 -> lesson1.getLessonId().equals(update.getCallbackQuery().getData())).findFirst().get();
+        Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(etuApiLesson.getLessonId())).findFirst();
         if (userLesson.isPresent()) {
             user.getLessons().remove(userLesson.get());
             user.setAutoCheck(false);
             log.info(user.getId() + " removes lesson " + userLesson.get().getLessonId());
         } else {
-            user.getLessons().add(listLesson);
+            user.getLessons().add(etuApiLesson);
+            etuApiService.check(user, etuApiLesson);
         }
         userService.saveUser(user);
         bot.execute(EditMessageReplyMarkup.builder().chatId(BotUtils.getUserId(update)).messageId(BotUtils.getMessageId(update)).replyMarkup(inlineKeyboardMarkupService.editLessonButtons(update, user)).build());
