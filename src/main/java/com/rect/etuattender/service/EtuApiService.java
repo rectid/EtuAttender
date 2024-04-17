@@ -62,6 +62,7 @@ public class EtuApiService {
                     .GET()
                     .build();
 
+            log.info(request.headers().toString());
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             log.info(response.statusCode() + "<==>" +response.body());
 
