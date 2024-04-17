@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -54,7 +55,7 @@ public class EtuApiService {
     }
 
     public String auth(User user, String[] lk) {
-        try (HttpClient client = HttpClient.newBuilder().build()){
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()){
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/login"))
@@ -62,6 +63,7 @@ public class EtuApiService {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
 
             String loginRequestFields = "_token=" + extractHtmlElement(response, "_token") + "&email=" + lk[0] + "&password=" + lk[1];
 
@@ -73,6 +75,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
 
             if (response.statusCode() == 419) {
                 return "lk_error";
@@ -85,6 +88,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
 
             String trueLoginLkCookie = extractCookie(response);
             String reportToForLoginLk = RegExUtils.removeAll(response.headers().map().get("location").getFirst(), "https:\\/\\/id.etu.ru\\/");
@@ -95,6 +99,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
             HashMap<String, String> newApiToken = objectMapper.readValue(response.body(), new TypeReference<>() {
             });
             HashMap<String, Object> newApiRequest = new HashMap<>() {{
@@ -111,7 +116,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.id.etu.ru/auth/login"))
                     .setHeader("Content-Type", "application/json")
@@ -120,7 +125,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.id.etu.ru/portal/oauth/" + reportToForLoginLk))
                     .setHeader("Accept", "application/json")
@@ -129,7 +134,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             HashMap<String, String> newApiToOldRedirect = objectMapper.readValue(response.body(), new TypeReference<>() {
             });
 
@@ -140,7 +145,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().map().get("location").getFirst()))
                     .setHeader("Cookie", extractCookie(response))
@@ -148,7 +153,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().map().get("location").getFirst()))
                     .setHeader("Cookie", extractCookie(response))
@@ -156,7 +161,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/oauth/authorize?client_id=29&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&response_type=code"))
                     .setHeader("Cookie", extractCookie(response))
@@ -164,7 +169,7 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             String oauthRequestFields = "_token="
                     + extractHtmlElement(response, "_token")
                     + "&state=&client_id=29" + "&auth_token="
@@ -178,14 +183,14 @@ public class EtuApiService {
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().firstValue("location").get()))
                     .GET()
                     .build();
 
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            log.info(response.statusCode() + "<==>" +response.body());
             String fullCookie = response.headers().firstValue("Set-Cookie").get();
             String[] dividedCookie = fullCookie.split(";");
             String cookie = dividedCookie[0];
@@ -225,8 +230,9 @@ public class EtuApiService {
                 .GET()
                 .build();
         List<LessonDto> lessonDtos;
-        try (HttpClient client = HttpClient.newBuilder().build()){
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()){
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
             lessonDtos = Arrays.stream(objectMapper.readValue(response.body(), LessonDto[].class)).toList();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -256,8 +262,9 @@ public class EtuApiService {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().build()){
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()){
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(response.statusCode() + "<==>" +response.body());
             log.info("Checked " + user.getNick() + ", lesson " + lesson.getShortTitle() + ", response: " + response.body());
             lessonService.checkLesson(lesson);
         } catch (IOException | InterruptedException e) {
