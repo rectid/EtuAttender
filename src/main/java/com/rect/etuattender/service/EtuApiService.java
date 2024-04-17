@@ -55,7 +55,7 @@ public class EtuApiService {
     }
 
     public String auth(User user, String[] lk) {
-        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()){
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()){
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/login"))
@@ -218,6 +218,7 @@ public class EtuApiService {
 
 
         } catch (IOException | InterruptedException e) {
+            log.error(e.getMessage());
             log.error("Auth error!" + user.getId());
             return "server_error";
         }
