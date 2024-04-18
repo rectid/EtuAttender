@@ -17,6 +17,19 @@ import java.util.Optional;
 @Component
 public class InlineKeyboardMarkupService {
 
+    public InlineKeyboardMarkup getCloseMessageButton(){
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        var button = new InlineKeyboardButton();
+        button.setCallbackData("CLOSE");
+        button.setText("|X|");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        inlineKeyboardMarkup.setKeyboard(rowsInLine);
+        return inlineKeyboardMarkup;
+    }
+
     public InlineKeyboardMarkup getAuthButtons() {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();

@@ -54,9 +54,11 @@ public class EtuApiService {
         return elements.attr("value");
     }
 
-    private HttpResponse<String> sendRequest(HttpClient client, HttpRequest request){
+    private HttpResponse<String> sendRequest(HttpClient client, HttpRequest request, User user) {
         try {
-            return client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(user.getId() + " => " + response.uri() + " == " + response.statusCode());
+            return response;
         } catch (IOException | InterruptedException e) {
             try {
                 Thread.sleep(500);
@@ -64,7 +66,7 @@ public class EtuApiService {
                 throw new RuntimeException(ex);
             }
             log.error(e.getMessage());
-            return sendRequest(client, request);
+            return sendRequest(client, request, user);
         }
     }
 
@@ -76,14 +78,8 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-                HttpResponse<String> response = null;
-            try {
-                response = sendRequest(client, request);
-                log.info(response.statusCode() + "<==>" + response.body());
-            } catch (Exception e){
-                response = sendRequest(client, request);
-                log.info(response.statusCode() + "<==>" + response.body());
-            }
+            HttpResponse<String> response = null;
+            response = sendRequest(client, request, user);
 
             String loginRequestFields = "_token=" + extractHtmlElement(response, "_token") + "&email=" + lk[0] + "&password=" + lk[1];
 
@@ -94,8 +90,7 @@ public class EtuApiService {
                     .POST(HttpRequest.BodyPublishers.ofString(loginRequestFields))
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
 
             if (response.statusCode() == 419) {
                 return "lk_error";
@@ -107,8 +102,7 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
 
             String trueLoginLkCookie = extractCookie(response);
             String reportToForLoginLk = RegExUtils.removeAll(response.headers().map().get("location").getFirst(), "https:\\/\\/id.etu.ru\\/");
@@ -118,8 +112,7 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             HashMap<String, String> newApiToken = objectMapper.readValue(response.body(), new TypeReference<>() {
             });
             HashMap<String, Object> newApiRequest = new HashMap<>() {{
@@ -135,8 +128,8 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
+
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.id.etu.ru/auth/login"))
                     .setHeader("Content-Type", "application/json")
@@ -144,8 +137,7 @@ public class EtuApiService {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(newApiRequest)))
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.id.etu.ru/portal/oauth/" + reportToForLoginLk))
                     .setHeader("Accept", "application/json")
@@ -153,8 +145,7 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             HashMap<String, String> newApiToOldRedirect = objectMapper.readValue(response.body(), new TypeReference<>() {
             });
 
@@ -164,32 +155,28 @@ public class EtuApiService {
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().map().get("location").getFirst()))
                     .setHeader("Cookie", extractCookie(response))
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().map().get("location").getFirst()))
                     .setHeader("Cookie", extractCookie(response))
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/oauth/authorize?client_id=29&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&response_type=code"))
                     .setHeader("Cookie", extractCookie(response))
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             String oauthRequestFields = "_token="
                     + extractHtmlElement(response, "_token")
                     + "&state=&client_id=29" + "&auth_token="
@@ -202,15 +189,13 @@ public class EtuApiService {
                     .POST(HttpRequest.BodyPublishers.ofString(oauthRequestFields))
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             request = HttpRequest.newBuilder()
                     .uri(URI.create(response.headers().firstValue("location").get()))
                     .GET()
                     .build();
 
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+            response = sendRequest(client, request, user);
             String fullCookie = response.headers().firstValue("Set-Cookie").get();
             String[] dividedCookie = fullCookie.split(";");
             String cookie = dividedCookie[0];
@@ -237,9 +222,9 @@ public class EtuApiService {
             return "ok";
 
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             log.error(e.getMessage());
-            log.error("Auth error!" + user.getId());
+            log.error("Auth error!|" + user.getId());
             return "server_error";
         }
     }
@@ -251,11 +236,10 @@ public class EtuApiService {
                 .GET()
                 .build();
         List<LessonDto> lessonDtos;
-        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
+            HttpResponse<String> response = sendRequest(client, request, user);
             lessonDtos = Arrays.stream(objectMapper.readValue(response.body(), LessonDto[].class)).toList();
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         modelMapper.typeMap(LessonDto.class, Lesson.class).addMapping(src -> src.getLesson().getShortTitle(), Lesson::setShortTitle);
@@ -283,13 +267,9 @@ public class EtuApiService {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
-            log.info("Checked " + user.getNick() + ", lesson " + lesson.getShortTitle() + ", response: " + response.body());
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
+            sendRequest(client, request, user);
             lessonService.checkLesson(lesson);
-        } catch (IOException | InterruptedException e) {
-            log.error("Problem with check " + user.getNick() + ", lesson " + lesson.getShortTitle());
         }
 
     }

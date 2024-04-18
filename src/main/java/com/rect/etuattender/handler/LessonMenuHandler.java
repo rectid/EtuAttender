@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -62,9 +63,11 @@ public class LessonMenuHandler {
             case "Панель Админа":
                 bot.routeHandling(update, user, IN_ADMIN_PANEL);
                 break;
-            case "Расписание", "Назад", "/start":
-                inLessonMenu(update, user, lessons);
+            case "Расписание":
+                inLessonMenu(update, user, lessons, false);
                 break;
+            case "Назад", "/start":
+                inLessonMenu(update, user, lessons, true);
             case "Изменить данные ЛК":
                 bot.routeHandling(update, user, ENTERING_LK);
                 break;
@@ -78,25 +81,38 @@ public class LessonMenuHandler {
                 changeLessonStatus(update, user, lessons);
         }
     }
+
     @SneakyThrows
     public void authExpired(Update update, User user) {
         user.setState(IN_MAIN_MENU);
         userService.saveUser(user);
         bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))
-                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .replyMarkup(replyKeyboardMarkupService.get(update, user))
                 .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
                 .build());
     }
 
     @SneakyThrows
     public void error(Update update) {
-        bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).text("Неизвестная команда.").build());
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .text("Неизвестная команда.")
+                .build());
     }
 
     @SneakyThrows
-    private void inLessonMenu(Update update, User user, List<Lesson> lessons) {
-        bot.execute(SendMessage.builder().chatId(BotUtils.getUserId(update)).replyMarkup(inlineKeyboardMarkupService.getLessonsButtons(lessons, user)).text("Ваше расписание на сегодня, выберите, на чем вас отметить:").build());
+    private void inLessonMenu(Update update, User user, List<Lesson> lessons, boolean isShowWelcome) {
+        if (isShowWelcome) {
+            bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(replyKeyboardMarkupService.get(update, user))
+                .text("Добро пожаловать в расписание!").build());
+        }
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .replyMarkup(inlineKeyboardMarkupService.getLessonsButtons(lessons, user))
+                .text("Ваше расписание на сегодня, выберите, на чем вас отметить:").build());
     }
 
     @SneakyThrows
@@ -169,7 +185,7 @@ public class LessonMenuHandler {
         } else {
             user.setLessons(lessons);
             user.setAutoCheck(true);
-            executor.execute(()->{
+            executor.execute(() -> {
                 userService.updateUserClosestLesson(user);
                 Optional<Lesson> lesson = lessons.stream().filter(lesson1 -> lesson1.getStartDate().isAfter(LocalDateTime.now()) && lesson1.getEndDate().isBefore(LocalDateTime.now())).findFirst();
                 lesson.ifPresent(value -> etuApiService.check(user, value));
@@ -190,9 +206,10 @@ public class LessonMenuHandler {
             log.info(user.getId() + " removes lesson " + userLesson.get().getLessonId());
         } else {
             user.getLessons().add(etuApiLesson);
-            executor.execute(()->{
+            executor.execute(() -> {
                 userService.updateUserClosestLesson(user);
-                if(etuApiLesson.getStartDate().isAfter(LocalDateTime.now()) && etuApiLesson.getEndDate().isBefore(LocalDateTime.now())) etuApiService.check(user, etuApiLesson);
+                if (etuApiLesson.getStartDate().isAfter(LocalDateTime.now()) && etuApiLesson.getEndDate().isBefore(LocalDateTime.now()))
+                    etuApiService.check(user, etuApiLesson);
             });
             log.info(user.getId() + " adds lesson " + etuApiLesson.getLessonId());
         }

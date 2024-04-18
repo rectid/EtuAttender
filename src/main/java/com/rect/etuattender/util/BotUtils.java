@@ -1,11 +1,18 @@
 package com.rect.etuattender.util;
 
+import com.rect.etuattender.controller.Bot;
 import com.rect.etuattender.model.User;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+
+import static com.rect.etuattender.model.User.State.IN_LESSONS_MENU;
+import static com.rect.etuattender.model.User.State.IN_MAIN_MENU;
 
 @UtilityClass
 public class BotUtils {
@@ -39,6 +46,14 @@ public class BotUtils {
         } else {
             return update.getCallbackQuery().getMessage().getMessageId();
         }
+    }
+
+    @SneakyThrows
+    public void deleteMessage(Update update, Bot bot){
+        bot.execute(DeleteMessage.builder()
+                    .chatId(BotUtils.getUserId(update))
+                    .messageId(BotUtils.getMessageId(update))
+                    .build());
     }
 
 }
