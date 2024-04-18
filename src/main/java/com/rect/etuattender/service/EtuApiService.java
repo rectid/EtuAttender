@@ -54,6 +54,19 @@ public class EtuApiService {
         return elements.attr("value");
     }
 
+    private HttpResponse<String> sendRequest(HttpClient client, HttpRequest request){
+        try {
+            return client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            return sendRequest(client, request);
+        }
+    }
+
     public String auth(User user, String[] lk) {
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
 
@@ -77,9 +90,13 @@ public class EtuApiService {
                     .setHeader("sec-ch-ua-platform", "\"Windows\"")
                     .build();
 
-            log.info(request.headers().map().toString());
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(response.statusCode() + "<==>" + response.body());
+                HttpResponse<String> response = null;
+            try {
+                response = sendRequest(client, request);
+                log.info(response.statusCode() + "<==>" + response.body());
+            } catch (Exception e){
+                response = sendRequest(client, request);
+            }
 
             String loginRequestFields = "_token=" + extractHtmlElement(response, "_token") + "&email=" + lk[0] + "&password=" + lk[1];
 
