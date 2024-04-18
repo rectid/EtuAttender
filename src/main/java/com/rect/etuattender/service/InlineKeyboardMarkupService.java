@@ -17,6 +17,19 @@ import java.util.Optional;
 @Component
 public class InlineKeyboardMarkupService {
 
+    public InlineKeyboardMarkup getCloseMessageButton(){
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        var button = new InlineKeyboardButton();
+        button.setCallbackData("CLOSE");
+        button.setText("|X|");
+        rowInLine.add(button);
+        rowsInLine.add(rowInLine);
+        inlineKeyboardMarkup.setKeyboard(rowsInLine);
+        return inlineKeyboardMarkup;
+    }
+
     public InlineKeyboardMarkup getAuthButtons() {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
@@ -36,7 +49,7 @@ public class InlineKeyboardMarkupService {
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup getAuthButtons(List<Lesson> lessons, User user) {
+    public InlineKeyboardMarkup getLessonsButtons(List<Lesson> lessons, User user) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
@@ -54,13 +67,13 @@ public class InlineKeyboardMarkupService {
             Optional<Lesson> userLesson = user.getLessons().stream().filter(lesson1 -> lesson1.getLessonId().equals(lesson.getLessonId())).findFirst();
             if (userLesson.isPresent()) {
                 String room = "?";
-                if (lesson.getRoom()!=null){
+                if (lesson.getRoom() != null) {
                     room = lesson.getRoom();
                 }
                 button.setText(newDateString + " - " + lesson.getShortTitle() + " - каб " + room + " ✔");
             } else {
                 String room = "?";
-                if (lesson.getRoom()!=null){
+                if (lesson.getRoom() != null) {
                     room = lesson.getRoom();
                 }
                 button.setText(newDateString + " - " + lesson.getShortTitle() + " - каб " + room + " ❌");
@@ -74,7 +87,6 @@ public class InlineKeyboardMarkupService {
         var button = new InlineKeyboardButton();
         if (user.isAutoCheck()) {
             button.setText("Все пары ✔");
-            ;
         } else {
             button.setText("Все пары ❌");
         }
@@ -85,51 +97,45 @@ public class InlineKeyboardMarkupService {
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup editLessonButtons(User user, String data, InlineKeyboardMarkup replyMarkup) {
-        List<List<InlineKeyboardButton>> rowsInLine = replyMarkup.getKeyboard();
+    public InlineKeyboardMarkup editLessonButtons(Update update, User user) {
+        List<List<InlineKeyboardButton>> rowsInLine = update.getCallbackQuery().getMessage().getReplyMarkup().getKeyboard();
         for (List<InlineKeyboardButton> rowInLine :
                 rowsInLine) {
             for (InlineKeyboardButton button :
                     rowInLine) {
 
-
-                if (data.equals("AUTO_CHECK")) {
-                    if (user.isAutoCheck()){
+                if (update.getCallbackQuery().getData().equals("AUTO_CHECK")) {
+                    if (user.isAutoCheck()) {
                         button.setText(button.getText().replace("❌", "✔"));
                     } else button.setText(button.getText().replace("✔", "❌"));
                     continue;
                 }
 
+                if (button.getCallbackData().equals(update.getCallbackQuery().getData())) {
 
-
-
-
-                if (button.getCallbackData().equals(data)) {
-
-                    InlineKeyboardButton autoButton = rowsInLine.get(rowsInLine.size() - 1).get(0);
+                    InlineKeyboardButton autoButton = rowsInLine.getLast().getFirst();
                     autoButton.setText("Все пары ❌");
                     user.setAutoCheck(false);
-                    user.setLessons(user.getLessons().stream().filter(lesson -> lesson.getStartDate().getDayOfYear()==LocalDateTime.now().getDayOfYear()).toList());
+                    user.setLessons(user.getLessons().stream().filter(lesson -> lesson.getStartDate().getDayOfYear() == LocalDateTime.now().getDayOfYear()).toList());
 
                     if (button.getText().contains("✔")) {
                         button.setText(button.getText().replace("✔", "❌"));
                     } else button.setText(button.getText().replace("❌", "✔"));
                 }
 
-
             }
         }
-        return replyMarkup;
+        return new InlineKeyboardMarkup(rowsInLine);
     }
 
-    public InlineKeyboardMarkup getUsersButtons(Update update, List<User> users, int page){
+    public InlineKeyboardMarkup getUsersButtons(Update update, List<User> users, int page) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-        int offset = page*8;
+        int offset = page * 8;
         int buttonCounter = 0;
-        if (users.size()<=8) {
-            for (int i=offset;i<users.size();i++) {
+        if (users.size() <= 8) {
+            for (int i = offset; i < users.size(); i++) {
                 User user = users.get(i);
                 var button = new InlineKeyboardButton();
                 button.setText(user.getNick());
@@ -138,7 +144,7 @@ public class InlineKeyboardMarkupService {
                 rowsInLine.add(rowInLine);
                 rowInLine = new ArrayList<>();
             }
-            if (page!=0){
+            if (page != 0) {
                 var button = new InlineKeyboardButton();
                 button.setCallbackData("Back");
                 button.setText("Назад");
@@ -147,7 +153,7 @@ public class InlineKeyboardMarkupService {
             }
 
         } else {
-            for (int i=offset;i<users.size();i++) {
+            for (int i = offset; i < users.size(); i++) {
                 User user = users.get(i);
                 var button = new InlineKeyboardButton();
                 button.setText(user.getNick());
@@ -156,34 +162,38 @@ public class InlineKeyboardMarkupService {
                 rowsInLine.add(rowInLine);
                 rowInLine = new ArrayList<>();
                 buttonCounter++;
-                if (buttonCounter==8){break;}
+                if (buttonCounter == 8) {
+                    break;
+                }
             }
-            if (page!=0){
+            if (page != 0) {
                 var button = new InlineKeyboardButton();
                 button.setCallbackData("Back");
                 button.setText("Назад");
                 rowInLine.add(button);
             }
-            if (users.size()-(offset+8)>0){
+            if (users.size() - (offset + 8) > 0) {
                 var button = new InlineKeyboardButton();
                 button.setText("Далее");
                 button.setCallbackData("Next");
                 rowInLine.add(button);
             }
-            rowsInLine.add(rowInLine);}
+            rowsInLine.add(rowInLine);
+        }
 
         inlineKeyboardMarkup.setKeyboard(rowsInLine);
         return inlineKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup getAdminButtons(User user){
+    public InlineKeyboardMarkup getAdminButtons(User user) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
         List<InlineKeyboardButton> rowInLine = new ArrayList<>();
         var button = new InlineKeyboardButton();
         button.setCallbackData("Ban");
-        if (!user.getRole().equals("BANNED")){
-        button.setText("Выдать бан");}else button.setText("Разбанить");
+        if (!user.getRole().equals("BANNED")) {
+            button.setText("Выдать бан");
+        } else button.setText("Разбанить");
         rowInLine.add(button);
         rowsInLine.add(rowInLine);
         inlineKeyboardMarkup.setKeyboard(rowsInLine);
