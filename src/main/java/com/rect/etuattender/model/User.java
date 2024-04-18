@@ -69,8 +69,6 @@ public class User {
         ENTERING_WITH_SAVE,
         ENTERING_WITHOUT_SAVE,
         IN_LESSONS_MENU,
-        IN_ADMIN_PANEL,
-        SENDING_MASS_MESSAGE,
-        IN_BAN;
+        IN_ADMIN_PANEL
     }
 }
