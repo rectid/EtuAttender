@@ -214,9 +214,8 @@ public class EtuApiService {
 
             user.setCookie(cookie);
             user.setCookieLifetime(localDateTime);
-            user.setAutoCheck(true);
+            user.setAutoCheck(false);
             user.setState(User.State.IN_LESSONS_MENU);
-            user.setLessons(getLessons(user));
             userService.saveUser(user);
 
             return "ok";
