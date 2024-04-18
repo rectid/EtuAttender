@@ -73,6 +73,9 @@ public class ReplyKeyboardMarkupService {
         keyboardRow = new KeyboardRow();
         keyboardRow.add("Массовая рассылка");
         keyboardRows.add(keyboardRow);
+        keyboardRow = new KeyboardRow();
+        keyboardRow.add("Начать процесс отметки");
+        keyboardRows.add(keyboardRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }

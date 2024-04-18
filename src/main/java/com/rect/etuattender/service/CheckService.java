@@ -24,25 +24,27 @@ import static com.rect.etuattender.controller.Bot.executor;
 public class CheckService {
 
     private final UserService userService;
-    private final LessonService lessonService;
     private final EtuApiService etuApiService;
     private final Bot bot;
 
     @Lazy
-    public CheckService(UserService userService, LessonService lessonService, EtuApiService etuApiService, Bot bot) {
+    public CheckService(UserService userService, EtuApiService etuApiService, Bot bot) {
         this.userService = userService;
-        this.lessonService = lessonService;
         this.etuApiService = etuApiService;
         this.bot = bot;
     }
 
     @EventListener({ContextRefreshedEvent.class})
     public void initChecking() {
+        if (scheduledFuture!=null){
+            scheduledFuture.cancel(false);
+        }
         executeScheduledTask();
     }
 
 
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private static ScheduledFuture<Void> scheduledFuture;
     public void executeScheduledTask() {
         Callable<Void> task = new Callable<>() {
 
@@ -130,6 +132,6 @@ public class CheckService {
             }
         };
 
-        scheduler.schedule(task, 1, TimeUnit.SECONDS);
+        scheduledFuture = scheduler.schedule(task, 1, TimeUnit.SECONDS);
     }
 }
