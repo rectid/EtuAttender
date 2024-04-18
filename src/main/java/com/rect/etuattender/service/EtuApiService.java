@@ -72,23 +72,8 @@ public class EtuApiService {
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://lk.etu.ru/login"))
+                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?response_type=code&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&client_id=29"))
                     .GET()
-                    .setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-                    .setHeader("Accept-Language", "ru,en-US;q=0.9,en;q=0.8")
-                    .setHeader("Cache-Control", "max-age=0")
-                    .setHeader("Connection", "keep-alive")
-                    .setHeader("Cookie", "XSRF-TOKEN=eyJpdiI6IlFiSFRLbTB5SnBibjR4V0JsOWdVNkE9PSIsInZhbHVlIjoiODFha0VadEFjWTRtanFFRytLYVFFaXBwVGs2NmZpRE81bE9kd2ZLWEVOQndFOUpmT1A1YVk3M2x5Rm1ka3RubENTSjJFaFp4bVlvYXhvbnFzRE1GUGJDVXdoeExYOWdTdDJYdmYrekp2V3JxN2ZwcmIvRW0rWnEyTktNY21YdTkiLCJtYWMiOiIwMjViZTYwODkzMDNlYjFiNjVhODEzODdiYjYyNmIxZDhlY2M0YzBhNTNmMzk1YWNlZTc4NzljMDYwMGY5Njc4IiwidGFnIjoiIn0%3D; lk_etu_ru_session=eyJpdiI6InpoaDk0OTVZTStPOFRtRFVUTG5GN0E9PSIsInZhbHVlIjoiZ2R3TWNJdit4bkZTRWVtMEFPRDQvOTA0NU40OEJpWGpocTRoWDNHdVptMTFBNk0yWnBXOGc3ODF5Zzd5UTZMRDVJZUN1NTBDM2tFdE9USk0rQ096SGV5eTQ5Yjh4NGxkUXFraVZ1ZzRTRnJjTjFlWFAyK2xkcWJaUnpTL1NKY1MiLCJtYWMiOiI3YWE4NzljMTdhMTkwZjFlMzcwOTliZDdhYTQ4ZWQ4NGRlYmNlODQxMzI1MjY2YzE3NmQ5NGE1YjU0M2QxY2RlIiwidGFnIjoiIn0%3D")
-                    .setHeader("DNT", "1")
-                    .setHeader("Sec-Fetch-Dest", "document")
-                    .setHeader("Sec-Fetch-Mode", "navigate")
-                    .setHeader("Sec-Fetch-Site", "none")
-                    .setHeader("Sec-Fetch-User", "?1")
-                    .setHeader("Upgrade-Insecure-Requests", "1")
-                    .setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-                    .setHeader("sec-ch-ua", "\"Chromium\";v=\"122\", \"Not(A:Brand\";v=\"24\", \"Google Chrome\";v=\"122\"")
-                    .setHeader("sec-ch-ua-mobile", "?0")
-                    .setHeader("sec-ch-ua-platform", "\"Windows\"")
                     .build();
 
                 HttpResponse<String> response = null;
@@ -97,6 +82,7 @@ public class EtuApiService {
                 log.info(response.statusCode() + "<==>" + response.body());
             } catch (Exception e){
                 response = sendRequest(client, request);
+                log.info(response.statusCode() + "<==>" + response.body());
             }
 
             String loginRequestFields = "_token=" + extractHtmlElement(response, "_token") + "&email=" + lk[0] + "&password=" + lk[1];
