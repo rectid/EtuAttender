@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.rect</groupId>
     <artifactId>EtuAttender</artifactId>
-    <version>1.0-REWORK-TEST</version>
+    <version>1.1-RELEASE</version>
     <name>EtuAttender</name>
     <description>EtuAttender</description>
     <properties>
