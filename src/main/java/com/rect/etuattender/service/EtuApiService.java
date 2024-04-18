@@ -68,7 +68,7 @@ public class EtuApiService {
     }
 
     public String auth(User user, String[] lk) {
-        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build()) {
+        try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://lk.etu.ru/login"))
