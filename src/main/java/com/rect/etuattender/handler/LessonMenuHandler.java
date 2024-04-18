@@ -68,6 +68,7 @@ public class LessonMenuHandler {
                 break;
             case "Назад", "/start":
                 inLessonMenu(update, user, lessons, true);
+                break;
             case "Изменить данные ЛК":
                 bot.routeHandling(update, user, ENTERING_LK);
                 break;
