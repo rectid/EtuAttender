@@ -72,7 +72,7 @@ public class EtuApiService {
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()) {
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://lk.etu.ru/oauth/authorize?response_type=code&redirect_uri=https%3A%2F%2Fdigital.etu.ru%2Fattendance%2Fapi%2Fauth%2Fredirect&client_id=29"))
+                    .uri(URI.create("https://lk.etu.ru/login"))
                     .GET()
                     .build();
 
