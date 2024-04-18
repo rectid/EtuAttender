@@ -43,9 +43,10 @@ public class AdminPanelHandler {
         String command = BotUtils.getCommand(update).orElse("UNKNOWN");
         switch (command) {
             case "CLOSE": BotUtils.deleteMessage(update, bot); break;
-            case "Начать процесс отметки": startChecking(update);
+            case "Начать процесс отметки": startChecking(update); break;
             case "Панель Админа": inAdminPanel(update); break;
             case "Массовая рассылка": getMassMessageTarget(update); break;
+            case "Обновить предметы в бд": updateLessons(update); break;
             case "Назад": {
                 if (BotUtils.checkCookies(user)) bot.routeHandling(update, user, IN_LESSONS_MENU);
                 else bot.routeHandling(update, user, IN_MAIN_MENU);
@@ -61,6 +62,14 @@ public class AdminPanelHandler {
         }
     }
 
+    @SneakyThrows
+    public void updateLessons(Update update){
+        checkService.updateUsersLessons();
+        bot.execute(SendMessage.builder()
+                .chatId(BotUtils.getUserId(update))
+                .text("Панель администратора. Выберите функцию")
+                .build());
+    }
 
 
     @SneakyThrows

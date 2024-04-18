@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 import static com.rect.etuattender.controller.Bot.executor;
+
 @Component
 @Slf4j
 public class CheckService {
@@ -36,16 +37,28 @@ public class CheckService {
 
     @EventListener({ContextRefreshedEvent.class})
     public void initChecking() {
-        if (scheduledFuture!=null){
+        if (scheduledFuture != null) {
             scheduledFuture.cancel(false);
         }
         executeScheduledTask();
     }
 
+    public void updateUsersLessons() {
+        List<User> users = userService.getAll();
+        for (var user : users) {
+            if (user.isAutoCheck()) {
+                user.setLessons(etuApiService.getLessons(user));
+            } else {
+                user.setLessons(new ArrayList<>());
+            }
+            userService.saveUser(user);
+        }
+    }
 
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private static ScheduledFuture<Void> scheduledFuture;
-    public void executeScheduledTask() {
+
+    private void executeScheduledTask() {
         Callable<Void> task = new Callable<>() {
 
             @SneakyThrows
@@ -54,6 +67,9 @@ public class CheckService {
                 long delay;
                 Callable<List<User>> c = userService::getAll;
                 List<User> users = new ArrayList<>(c.call());
+                if (LocalTime.now().isBefore(LocalTime.of(1, 1)) && LocalTime.now().isAfter(LocalTime.of(0, 1)) && LocalDate.now().getDayOfWeek() == DayOfWeek.MONDAY) {
+                    updateUsersLessons();
+                }
                 for (User user :
                         users) {
                     if (user.getCookie() == null || user.getCookieLifetime() == null) continue;
@@ -85,15 +101,6 @@ public class CheckService {
                         }
                     }
 
-                    if (LocalTime.now().isBefore(LocalTime.of(1, 1)) && LocalTime.now().isAfter(LocalTime.of(0, 1)) && LocalDate.now().getDayOfWeek() == DayOfWeek.MONDAY) {
-                        if (user.isAutoCheck()) {
-                            user.setLessons(etuApiService.getLessons(user));
-                        } else {
-                            user.setLessons(new ArrayList<>());
-                        }
-                        userService.saveUser(user);
-                    }
-
                     executor.execute(() -> {
                         for (Lesson lesson :
                                 user.getLessons()) {
@@ -117,8 +124,8 @@ public class CheckService {
                 }
                 delay = nextLessonDate - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 10;
                 long delayAuth = nextAuthExpireDate - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 10;
-                if (LocalTime.now().isBefore(LocalTime.of(1,0))&& LocalDate.now().getDayOfWeek()==DayOfWeek.MONDAY){
-                    delay = LocalTime.of(1,0).toEpochSecond(LocalDate.now(),ZoneOffset.UTC) - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+                if (LocalTime.now().isBefore(LocalTime.of(1, 0)) && LocalDate.now().getDayOfWeek() == DayOfWeek.MONDAY) {
+                    delay = LocalTime.of(1, 0).toEpochSecond(LocalDate.now(), ZoneOffset.UTC) - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
                 }
                 if (delay <= 0) {
                     delay = 3600;

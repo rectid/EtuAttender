@@ -76,6 +76,9 @@ public class ReplyKeyboardMarkupService {
         keyboardRow = new KeyboardRow();
         keyboardRow.add("Начать процесс отметки");
         keyboardRows.add(keyboardRow);
+        keyboardRow = new KeyboardRow();
+        keyboardRow.add("Обновить предметы в бд");
+        keyboardRows.add(keyboardRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
