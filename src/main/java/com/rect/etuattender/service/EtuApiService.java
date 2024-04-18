@@ -63,6 +63,7 @@ public class EtuApiService {
             } catch (InterruptedException ex) {
                 throw new RuntimeException(ex);
             }
+            log.error(e.getMessage());
             return sendRequest(client, request);
         }
     }
