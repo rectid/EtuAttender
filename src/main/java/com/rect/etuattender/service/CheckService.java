@@ -117,7 +117,7 @@ public class CheckService {
                 long nextLessonDate = 0;
                 long nextAuthExpireDate = 0;
                 if (!userList.isEmpty()) {
-                    nextLessonDate = userList.stream().parallel().filter(user -> user.getStartOfClosestLesson() != null).mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().orElse(0);
+                    nextLessonDate = userList.stream().parallel().filter(user -> user.getStartOfClosestLesson() != null && user.getStartOfClosestLesson().isAfter(LocalDateTime.now())).mapToLong(user -> user.getStartOfClosestLesson().toEpochSecond(ZoneOffset.UTC)).min().orElse(0);
                     nextAuthExpireDate = userList.stream().parallel().mapToLong(user -> user.getCookieLifetime().toEpochSecond(ZoneOffset.UTC)).min().orElse(0);
                 }
                 delay = nextLessonDate - LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 10;
