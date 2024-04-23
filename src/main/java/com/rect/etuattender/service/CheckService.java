@@ -48,8 +48,6 @@ public class CheckService {
         for (var user : users) {
             if (user.isAutoCheck()) {
                 user.setLessons(etuApiService.getLessons(user));
-            } else {
-                user.setLessons(new ArrayList<>());
             }
             userService.saveUser(user);
         }
