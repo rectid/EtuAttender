@@ -79,7 +79,7 @@ public class MainMenuHandler {
     public void inMainMenu(Update update, User user) {
         bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))
-                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .replyMarkup(replyKeyboardMarkupService.getMainMenuButtons(user))
                 .text("Вы в главном меню. Если кнопки не появились - введите /start")
                 .build());
     }
@@ -96,7 +96,7 @@ public class MainMenuHandler {
     public void authExpired(Update update, User user) {
         bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))
-                .replyMarkup(replyKeyboardMarkupService.get(update,user))
+                .replyMarkup(replyKeyboardMarkupService.getMainMenuButtons(user))
                 .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
                 .build());
     }

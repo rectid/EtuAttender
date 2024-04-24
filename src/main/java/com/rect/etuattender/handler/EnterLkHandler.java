@@ -99,15 +99,15 @@ public class EnterLkHandler {
             userService.saveUser(user);
         }
         bot.execute(SendMessage.builder()
-                        .chatId(BotUtils.getUserId(update))
-                        .text("Регистрирую вас...")
-                        .build());
+                .chatId(BotUtils.getUserId(update))
+                .text("Регистрирую вас...")
+                .build());
         switch (etuApiService.auth(user, lk)) {
             case "ok":
                 bot.execute(SendMessage.builder()
                         .chatId(BotUtils.getUserId(update))
                         .text("Успешно. Добро пожаловать!")
-                        .replyMarkup(replyKeyboardMarkupService.get(update, user))
+                        .replyMarkup(replyKeyboardMarkupService.getLessonMenuButtons())
                         .build());
                 bot.execute(SendMessage.builder()
                         .chatId(BotUtils.getUserId(update))

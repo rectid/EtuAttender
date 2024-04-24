@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -37,20 +36,22 @@ public class LessonMenuHandler {
     private final EtuApiService etuApiService;
     private final InlineKeyboardMarkupService inlineKeyboardMarkupService;
     private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
+    private final CheckService checkService;
 
     @Lazy
-    public LessonMenuHandler(UserService userService, LessonService lessonService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
+    public LessonMenuHandler(UserService userService, LessonService lessonService, Bot bot, EtuApiService etuApiService, InlineKeyboardMarkupService inlineKeyboardMarkupService, ReplyKeyboardMarkupService replyKeyboardMarkupService, CheckService checkService) {
         this.userService = userService;
         this.lessonService = lessonService;
         this.bot = bot;
         this.etuApiService = etuApiService;
         this.inlineKeyboardMarkupService = inlineKeyboardMarkupService;
         this.replyKeyboardMarkupService = replyKeyboardMarkupService;
+        this.checkService = checkService;
     }
 
     public void handle(Update update, User user) {
         String command = BotUtils.getCommand(update).orElse("UNKNOWN");
-        if (!BotUtils.checkCookies(user)) authExpired(update, user);
+        if (!BotUtils.checkCookies(user)) checkService.checkUserCookieStatus(user);
         List<Lesson> lessons = etuApiService.getLessons(user);
 
         switch (command) {
@@ -84,17 +85,6 @@ public class LessonMenuHandler {
     }
 
     @SneakyThrows
-    public void authExpired(Update update, User user) {
-        user.setState(IN_MAIN_MENU);
-        userService.saveUser(user);
-        bot.execute(SendMessage.builder()
-                .chatId(BotUtils.getUserId(update))
-                .replyMarkup(replyKeyboardMarkupService.get(update, user))
-                .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
-                .build());
-    }
-
-    @SneakyThrows
     public void error(Update update) {
         bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))
@@ -107,8 +97,8 @@ public class LessonMenuHandler {
         if (isShowWelcome) {
             bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))
-                .replyMarkup(replyKeyboardMarkupService.get(update, user))
-                .text("Добро пожаловать в расписание!").build());
+                .replyMarkup(replyKeyboardMarkupService.getLessonMenuButtons())
+                .text("Добро пожаловать в меню \"Расписание\"!").build());
         }
         bot.execute(SendMessage.builder()
                 .chatId(BotUtils.getUserId(update))

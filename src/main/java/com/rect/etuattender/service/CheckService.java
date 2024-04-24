@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 import static com.rect.etuattender.controller.Bot.executor;
+import static com.rect.etuattender.model.User.State.IN_MAIN_MENU;
 
 @Component
 @Slf4j
@@ -27,12 +28,14 @@ public class CheckService {
     private final UserService userService;
     private final EtuApiService etuApiService;
     private final Bot bot;
+    private final ReplyKeyboardMarkupService replyKeyboardMarkupService;
 
     @Lazy
-    public CheckService(UserService userService, EtuApiService etuApiService, Bot bot) {
+    public CheckService(UserService userService, EtuApiService etuApiService, Bot bot, ReplyKeyboardMarkupService replyKeyboardMarkupService) {
         this.userService = userService;
         this.etuApiService = etuApiService;
         this.bot = bot;
+        this.replyKeyboardMarkupService = replyKeyboardMarkupService;
     }
 
     @EventListener({ContextRefreshedEvent.class})
@@ -53,6 +56,43 @@ public class CheckService {
         }
     }
 
+    @SneakyThrows
+    public boolean checkUserCookieStatus(User user) {
+        if (user.getCookie() == null || user.getCookieLifetime() == null) return false;
+        if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
+            if (user.getCookie().equals("EXPIRED")) {
+                return false;
+            }
+            if (user.getLogin() != null) {
+                bot.execute(SendMessage.builder()
+                .chatId(user.getId())
+                .text("Ваш токен регистрации в системе истек, начинаю замену")
+                .build());
+                Update update = new Update();
+                Message message = new Message();
+                message.setFrom(new org.telegram.telegrambots.meta.api.objects.User() {{
+                    setId(user.getId());
+                }});
+                message.setText(user.getLogin() + ":" + user.getPassword());
+                update.setMessage(message);
+                Future<?> task = executor.submit(() -> bot.routeHandling(update, user, User.State.ENTERING_WITH_SAVE));
+                task.get();
+                return true;
+            } else {
+                user.setCookie("EXPIRED");
+                user.setState(IN_MAIN_MENU);
+                userService.saveUser(user);
+                bot.execute(SendMessage.builder()
+                .chatId(user.getId())
+                .replyMarkup(replyKeyboardMarkupService.getMainMenuButtons(user))
+                .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
+                .build());
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private static ScheduledFuture<Void> scheduledFuture;
 
@@ -70,35 +110,7 @@ public class CheckService {
                 }
                 for (User user :
                         users) {
-                    if (user.getCookie() == null || user.getCookieLifetime() == null) continue;
-                    if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
-                        if (user.getCookie().equals("EXPIRED")) {
-                            continue;
-                        }
-                        if (user.getLogin() != null) {
-                            Update update = new Update();
-                            Message message = new Message();
-                            message.setText(user.getLogin() + ":" + user.getPassword());
-                            update.setMessage(message);
-                            Chat chat = new Chat();
-                            chat.setId(user.getId());
-                            update.getMessage().setChat(chat);
-                            Future<?> task = executor.submit(() -> bot.routeHandling(update, user, User.State.ENTERING_WITH_SAVE));
-                            task.get();
-                        } else {
-                            user.setCookie("EXPIRED");
-                            Update update = new Update();
-                            Message message = new Message();
-                            message.setText("Расписание");
-                            update.setMessage(message);
-                            Chat chat = new Chat();
-                            chat.setId(user.getId());
-                            update.getMessage().setChat(chat);
-                            Future<?> task = executor.submit(() -> bot.routeHandling(update, user, User.State.IN_LESSONS_MENU));
-                            task.get();
-                        }
-                    }
-
+                    if (!checkUserCookieStatus(user)) continue;
                     executor.execute(() -> {
                         for (Lesson lesson :
                                 user.getLessons()) {
