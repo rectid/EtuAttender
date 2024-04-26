@@ -114,10 +114,6 @@ public class CheckService {
                 }
                 for (User user :
                         users) {
-                    log.info("work with" + user.getId());
-                    if (user.getId() == 1000033086) {
-                        System.out.println("there!");
-                    }
                     if (!checkUserCookieStatus(user)) continue;
                     executor.execute(() -> {
                         for (Lesson lesson :
