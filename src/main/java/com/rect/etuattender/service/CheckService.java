@@ -47,7 +47,7 @@ public class CheckService {
     }
 
     public void updateUsersLessons() {
-        List<User> users = userService.getAll();
+        List<User> users = userService.getAll().stream().filter(user ->  user.getCookie()!=null && !user.getCookie().equals("EXPIRED")).toList();
         for (var user : users) {
             if (user.isAutoCheck()) {
                 user.setLessons(etuApiService.getLessons(user));
