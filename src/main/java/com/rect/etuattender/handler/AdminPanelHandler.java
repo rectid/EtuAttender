@@ -59,7 +59,7 @@ public class AdminPanelHandler {
             {
                 if (update.getMessage().getReplyToMessage()!=null){
                     if (update.getMessage().getReplyToMessage().getText().contains("all")){
-                    sendToEveryone(update);}
+                    sendToActive(update);}
                     else {
                         sendToInactive(update);
                     }
@@ -88,8 +88,8 @@ public class AdminPanelHandler {
     }
 
     @SneakyThrows
-    private void sendToEveryone(Update update){
-        List<User> users = userService.getAll();
+    private void sendToActive(Update update){
+        List<User> users = userService.getAll().stream().filter(user -> user.getCookie()!=null && !user.getCookie().equals("EXPIRED")).toList();
         for (User user : users) {
             bot.execute(SendMessage.builder()
                     .chatId(user.getId())
@@ -100,7 +100,7 @@ public class AdminPanelHandler {
 
     @SneakyThrows
     private void sendToInactive(Update update){
-        List<User> users = userService.getAll().stream().filter(user -> user.getStartOfClosestLesson()==null || user.getStartOfClosestLesson().isBefore(LocalDateTime.of(2024,4,1,0,0))).toList();
+        List<User> users = userService.getAll().stream().filter(user ->  user.getCookie()==null || user.getCookie().equals("EXPIRED")).toList();
         for (User user : users) {
             bot.execute(SendMessage.builder()
                     .chatId(user.getId())
