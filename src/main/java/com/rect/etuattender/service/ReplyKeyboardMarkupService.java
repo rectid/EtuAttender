@@ -77,6 +77,9 @@ public class ReplyKeyboardMarkupService {
         keyboardRow = new KeyboardRow();
         keyboardRow.add("Обновить предметы в бд");
         keyboardRows.add(keyboardRow);
+        keyboardRow = new KeyboardRow();
+        keyboardRow.add("Массовая рассылка для неактива");
+        keyboardRows.add(keyboardRow);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
