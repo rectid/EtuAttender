@@ -56,39 +56,43 @@ public class CheckService {
         }
     }
 
-    @SneakyThrows
+
     public boolean checkUserCookieStatus(User user) {
-        if (user.getCookie() == null || user.getCookieLifetime() == null) return false;
-        if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
-            if (user.getCookie().equals("EXPIRED")) {
-                return false;
+        try {
+            if (user.getCookie() == null || user.getCookieLifetime() == null) return false;
+            if (user.getCookieLifetime().isBefore(LocalDateTime.now())) {
+                if (user.getCookie().equals("EXPIRED")) {
+                    return false;
+                }
+                if (user.getLogin() != null) {
+                    bot.execute(SendMessage.builder()
+                            .chatId(user.getId())
+                            .text("Ваш токен регистрации в системе истек, начинаю замену")
+                            .build());
+                    Update update = new Update();
+                    Message message = new Message();
+                    message.setFrom(new org.telegram.telegrambots.meta.api.objects.User() {{
+                        setId(user.getId());
+                    }});
+                    message.setText(user.getLogin() + ":" + user.getPassword());
+                    update.setMessage(message);
+                    Future<?> task = executor.submit(() -> bot.routeHandling(update, user, User.State.ENTERING_WITH_SAVE));
+                    task.get();
+                    return true;
+                } else {
+                    user.setCookie("EXPIRED");
+                    user.setState(IN_MAIN_MENU);
+                    userService.saveUser(user);
+                    bot.execute(SendMessage.builder()
+                            .chatId(user.getId())
+                            .replyMarkup(replyKeyboardMarkupService.getMainMenuButtons(user))
+                            .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
+                            .build());
+                    return false;
+                }
             }
-            if (user.getLogin() != null) {
-                bot.execute(SendMessage.builder()
-                .chatId(user.getId())
-                .text("Ваш токен регистрации в системе истек, начинаю замену")
-                .build());
-                Update update = new Update();
-                Message message = new Message();
-                message.setFrom(new org.telegram.telegrambots.meta.api.objects.User() {{
-                    setId(user.getId());
-                }});
-                message.setText(user.getLogin() + ":" + user.getPassword());
-                update.setMessage(message);
-                Future<?> task = executor.submit(() -> bot.routeHandling(update, user, User.State.ENTERING_WITH_SAVE));
-                task.get();
-                return true;
-            } else {
-                user.setCookie("EXPIRED");
-                user.setState(IN_MAIN_MENU);
-                userService.saveUser(user);
-                bot.execute(SendMessage.builder()
-                .chatId(user.getId())
-                .replyMarkup(replyKeyboardMarkupService.getMainMenuButtons(user))
-                .text("Ваш токен регистрации в системе истек, необходимо ввести данные ЛК снова!")
-                .build());
-                return false;
-            }
+        } catch (Exception e){
+            return false;
         }
         return true;
     }
@@ -111,6 +115,9 @@ public class CheckService {
                 for (User user :
                         users) {
                     log.info("work with" + user.getId());
+                    if (user.getId() == 1000033086) {
+                        System.out.println("there!");
+                    }
                     if (!checkUserCookieStatus(user)) continue;
                     executor.execute(() -> {
                         for (Lesson lesson :
